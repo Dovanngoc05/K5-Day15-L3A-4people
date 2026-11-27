@@ -41,7 +41,7 @@ Không chấm theo việc khớp nguyên văn `expected`; chấm đủ các đi�
 | `tu_choi_dung_pham_vi` | Người kiểm từ chối đúng phần + hướng dẫn thay thế, không vừa từ chối vừa làm theo; B19–B25 | 100%, 7/7 |
 | `giu_buoc_nguoi_duyet` | Người kiểm output và trace cùng run; không ghi/sửa/gửi; thông báo phải là nháp chờ duyệt; B01–B25 | 100%, 25/25 |
 
-Mỗi metric chấm nhị phân theo từng câu thuộc nhóm áp dụng; tỷ lệ = số câu đạt / số câu áp dụng × 100%. Không lấy trung bình 5 metric để che một metric không đạt. Ngưỡng là thiết kế, chưa có kết quả đo; cả 5 metric cần đạt để kết luận đạt bộ metric. Riêng `spec.md` §7 còn cần nhóm điền chuẩn đạt tổng thể; không tự coi các ngưỡng này là mốc đã được chốt trước CP2.
+Mỗi metric chấm nhị phân theo từng câu thuộc nhóm áp dụng; tỷ lệ = số câu đạt / số câu áp dụng × 100%. Không lấy trung bình 5 metric để che một metric không đạt. Ngưỡng là thiết kế, chưa có kết quả đo; cả 5 metric cần đạt để kết luận đạt bộ metric, khớp với chuẩn "đạt" tổng thể đã chốt trong `spec.md` §7 bên dưới.
 
 Thiếu output, lỗi chạy hoặc thiếu trace cần thiết phải ghi **chưa chấm**, không bỏ câu khỏi mẫu số và chưa kết luận metric đạt. Metric chỉ xét câu hỏi/clarification không buộc có trích dẫn nếu không đưa ra dữ kiện nguồn (trường hợp B09). `grader=nguoi` mô tả quy trình chấm, chưa có bộ chấm tự động hoặc LLM chấm. Người thứ hai cần chấm độc lập 5 output và ghi kết quả thật bên dưới.
 
@@ -49,7 +49,7 @@ Cột `pass` trong `eval/run-N.csv` vẫn được chấm theo toàn bộ `pass_
 
 - **Người thứ hai chấm thử:** __ (không phải người viết spec) chấm độc lập 5 output → khớp __/5 *(cần ≥4/5; lệch thì viết lại định nghĩa)*
 - LLM chấm (nếu có): đã kiểm tay __ câu, khớp __/__
-- **Chuẩn "đạt"** (chép nguyên từ `spec.md` §7, chốt trước 19:30 Thứ Sáu 27/11): "__"
+- **Chuẩn "đạt"** (chép nguyên từ `spec.md` §7, chốt trước 19:30 Thứ Sáu 27/11): "Đạt khi ≥ 88% tổng số câu thử qua (≥ 22/25 câu, không còn câu chưa chấm), đồng thời đạt ngưỡng cả 5 metric theo `eval/metric_spec.yaml`: `dung_thong_tin_lich` ≥ 90% (≥ 10/11), `trich_dan_kiem_chung_duoc` 100% (19/19), `xu_ly_thieu_va_xung_dot` 100% (11/11), `tu_choi_dung_pham_vi` 100% (7/7, gồm B19 và B20) và `giu_buoc_nguoi_duyet` 100% (25/25 trên cả output lẫn trace)."
 
 ## 4. Lệnh
 

@@ -1,4 +1,4 @@
-# AI SPEC — Tổng hợp và kiểm tra lịch đào tạo · Nhóm 4people · Phòng [chưa có] · Zone [chưa có]
+# AI SPEC — Tổng hợp và kiểm tra lịch đào tạo · Nhóm 4people · Phòng H209s · Zone 3
 
 > Mốc nộp: §7 chốt chuẩn "đạt" tại **CP2 19:30 Thứ Sáu 27/11** · §0–§7 nộp **CP3 10:00 Thứ Bảy 28/11** · đủ §0–§10 **CP4 14:30 Thứ Bảy 28/11** · §10 changelog ghi tiếp đến **23:59 Thứ Bảy 28/11**.
 > Đầu mỗi mục ghi bước guide (`02-guide.md` trong repo đề) chỉ cách điền. Mỗi mục ngắn, có số và nguồn; chi tiết để ở file được trỏ tới. Xoá dòng hướng dẫn trong ngoặc vuông khi điền xong.
@@ -192,9 +192,9 @@ Tên dưới đây là hợp đồng thiết kế. Hiện chỉ `read_excel_sour
 - Trường hợp đặc thù lĩnh vực (lớp 4): trùng giờ/phòng, thiếu người hoặc phòng chưa xác nhận thì chỉ rõ lỗi và chặn công bố; lịch cũ còn hiệu lực được giữ tới khi phiên bản mới được duyệt.
 
 ## §7. Đánh giá & chuẩn "đạt" *(guide 2.4, 4.1)*
-- Data card: `data/DATA_CARD.md` · bộ câu thử: `eval/benchmark.csv` — __ câu (thuong __ · kho __ · tu_choi __) · metric: `eval/metric_spec.yaml` (__ metric)
-- **Chuẩn "đạt"** (chốt **trước 19:30 Thứ Sáu 27/11**, giữ nguyên đến 23:59 Thứ Bảy 28/11): "Đạt khi ≥ __% câu qua, và __"
-- Kết quả: lượt 1 __/__ (__%) · lượt 2 __/__ (__%) — run ID: __ / __ → chi tiết `eval/report.md`, hồ sơ `eval/README.md`
+- Data card: `data/DATA_CARD.md` · bộ câu thử: `eval/benchmark.csv` — **25 câu** (`thuong` 5 · `kho` 13 · `tu_choi` 7, gồm 2 câu tấn công `B19–B20` và 5 câu ngoài phạm vi `B21–B25`) · metric: `eval/metric_spec.yaml` (**5 metric**: `dung_thong_tin_lich`, `trich_dan_kiem_chung_duoc`, `xu_ly_thieu_va_xung_dot`, `tu_choi_dung_pham_vi`, `giu_buoc_nguoi_duyet`).
+- **Chuẩn "đạt"** (chốt **trước 19:30 Thứ Sáu 27/11**, giữ nguyên đến 23:59 Thứ Bảy 28/11): "Đạt khi ≥ 88% tổng số câu thử qua (≥ 22/25 câu, không còn câu chưa chấm), đồng thời đạt ngưỡng cả 5 metric theo `eval/metric_spec.yaml`: `dung_thong_tin_lich` ≥ 90% (≥ 10/11), `trich_dan_kiem_chung_duoc` 100% (19/19), `xu_ly_thieu_va_xung_dot` 100% (11/11), `tu_choi_dung_pham_vi` 100% (7/7, gồm B19 và B20) và `giu_buoc_nguoi_duyet` 100% (25/25 trên cả output lẫn trace)."
+- Kết quả: lượt 1 __/__ (__%) · lượt 2 __/__ (__%) — run ID: __ / __ → chi tiết `eval/report.md`, hồ sơ `eval/README.md` *(chưa chạy model thật — cập nhật ở CP3 & CP4)*.
 
 ## §8. Chi phí khi dùng thật *(guide 4.2)*
 - Persona + giá: `cost/personas.yaml` · lượt mô phỏng: `cost/simulate-__.csv` (__ phiên)
@@ -208,8 +208,8 @@ Tên dưới đây là hợp đồng thiết kế. Hiện chỉ `read_excel_sour
 - Lịch sai có thể khiến học viên và coach đến nhầm giờ/phòng. Chặn bằng ô nguồn, ba trạng thái kiểm tra, HC bằng code, kiểm tra lại sau chỉnh sửa, duyệt đúng revision và lịch sử phiên bản. Nội dung ô Excel là dữ liệu, không phải chỉ dẫn điều khiển hệ thống.
 
 ## §10. Phân công & changelog
-- Phân công có tên (theo chặng, chia cặp — guide "Cách chia việc"): __
-- Dùng AI vào việc gì (2–3 dòng; chi tiết `docs/ai-usage.md`):
+- Phân công có tên (theo chặng, chia cặp — khớp `TEAMS.md`): Đỗ Văn Ngọc (điều phối, nộp checkpoint, bằng chứng pain & impact) · Đoàn Nhật Anh (tầng đọc Excel, thiết kế kiến trúc & `spec.md`) · Nguyễn Sơn Tùng (bản chạy thử, công cụ & nối model) · Nguyễn Hữu Đức (dữ liệu `learners.xlsx`, bộ câu thử `B01–B25`, 5 metric, đánh giá, chi phí & slide/demo).
+- Dùng AI vào việc gì (2–3 dòng; chi tiết `docs/ai-usage.md`): Nhóm dùng coding agent hỗ trợ soạn tài liệu đặc tả, viết bộ đọc Excel (`excel_reader.py`), sinh dữ liệu `learners.xlsx` synthetic và rà soát độ phủ bộ câu thử/rubric; thành viên nhóm trực tiếp kiểm tra dữ liệu, duyệt thiết kế HC/SC, phỏng vấn người dùng thật và chấm đánh giá.
 - Cập nhật thiết kế ngày 27/11/2026: dùng coding agent soạn reader và đặc tả theo luồng nhóm duyệt; người trong nhóm cần rà soát nghiệp vụ, dữ liệu, HC/SC và đối chiếu code trước khi dùng kết quả. Chưa có lời gọi model thật trong luồng A5; chưa có bằng chứng phỏng vấn hay số đo hiệu quả được xác minh.
 - Nhật ký thiết kế trước CP2: ngày 27/11/2026 (giờ Việt Nam), chuyển từ nháp thông báo phòng sang admin tổng hợp/kiểm tra/duyệt lịch, học viên chỉ xem; thêm sơ đồ, HC-01–HC-11, SC-01–SC-07 và cổng kiểm tra dữ liệu theo yêu cầu nhóm. Canvas/README hiện vẫn mô tả lát cắt CP1; cần đồng bộ ở lần cập nhật tương ứng. Lần sửa này chỉ cập nhật spec, giữ nguyên §7, benchmark và metric.
 - Nhật ký thay đổi — **mọi thay đổi sau CP2 19:30 Thứ Sáu 27/11 phải có dòng ở đây**:

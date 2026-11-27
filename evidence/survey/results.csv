@@ -1,0 +1,5 @@
+response_id,timestamp,role,participation,frequency_1m,sources_used,duration_last_time,issues_encountered,actual_impact,open_comment
+R1,2026/11/27 6:58:44 CH GMT+7,Học Viên,"Có, tra lịch/phòng và xử lý ca của bản thân hoặc nhóm",Trên 10 lần,Email / danh sách nhóm học viên,Dưới 5 phút,Chưa gặp tình huống nào ở trên,Không áp dụng (chưa gặp vướng),không có
+R2,2026/11/27 6:58:47 CH GMT+7,Học viên,"Có, tra lịch/phòng và xử lý ca của bản thân hoặc nhóm",Trên 10 lần,Email / danh sách nhóm học viên,Dưới 5 phút,Chưa gặp tình huống nào ở trên,Không áp dụng (chưa gặp vướng),Không có
+R3,2026/11/27 7:12:45 CH GMT+7,Học viên,"Có, tra lịch/phòng và xử lý ca của bản thân hoặc nhóm",6–10 lần,Email / danh sách nhóm học viên,Dưới 5 phút,Chưa gặp tình huống nào ở trên,Không áp dụng (chưa gặp vướng),
+R4,2026/11/27 7:15:39 CH GMT+7,Lab Coach,"Có, tra lịch/phòng và xử lý ca của bản thân hoặc nhóm",1–2 lần,Bảng phân công giảng dạy (Google Sheets / Excel),Dưới 5 phút,"Phòng vẫn ""chờ xác nhận"" hoặc ""dự kiến (dk:)"" sát giờ học",Mất thêm thời gian kiểm tra lại và hỏi qua lại nhiều bên,

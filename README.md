@@ -4,6 +4,19 @@
 
 *Lát cắt:* Một key coach lớp L3A · chuẩn bị thông báo phòng trước buổi lab · dựa trên bảng lịch, phòng xác nhận, danh sách nhóm và kết quả kiểm tra bằng code, AI quyết định soạn bản nháp thông báo kèm căn cứ hay gắn cờ yêu cầu làm rõ · key coach nhận bản nháp kèm cảnh báo để duyệt trước khi gửi.
 
+## Đọc nhiều file Excel A5
+
+Phần nhập Excel dùng thêm `openpyxl`. Cài một lần rồi đọc thư mục dữ liệu:
+
+```powershell
+python -m pip install -r requirements.txt
+python -m codebase.excel_reader data-btc/training-ops
+```
+
+Hỗ trợ nhiều đường dẫn hoặc file upload, đọc mọi sheet và giữ ô nguồn.
+Hướng dẫn đầy đủ: [docs/read-excel.md](docs/read-excel.md).
+Đây là tầng đọc dữ liệu; luồng agent hiện chưa nối vào phần này.
+
 ---
 
 ## Nhóm làm gì, khung làm gì

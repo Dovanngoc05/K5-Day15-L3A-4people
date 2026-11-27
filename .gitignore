@@ -9,6 +9,7 @@ credentials*.json
 __pycache__/
 *.pyc
 .venv/
+.venv-libs/
 venv/
 node_modules/
 .DS_Store

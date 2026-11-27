@@ -12,6 +12,16 @@ from tracing import tool, TOOLS  # noqa: F401  (TOOLS: danh sách công cụ đ�
 
 
 @tool
+def read_excel_sources(paths: list) -> dict:
+    """Đọc nhiều nguồn Excel A5.
+    Input: danh sách đường dẫn .xlsx/.xlsm. Output: files, errors, summary,
+    giữ tên file, sheet, dòng và ô nguồn. Chỉ đọc file local; không tác động ra ngoài.
+    """
+    from excel_reader import read_excel_files
+    return read_excel_files(paths)
+
+
+@tool
 def search_example(query: str) -> list:
     """(ví dụ — thay bằng công cụ của nhóm) Tra dữ liệu mẫu theo câu hỏi.
     Input: câu hỏi (str). Output: danh sách đoạn {"code", "text"}. Không tác động ra ngoài."""

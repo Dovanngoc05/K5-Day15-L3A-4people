@@ -15,7 +15,77 @@ python -m codebase.excel_reader data-btc/training-ops
 
 Hỗ trợ nhiều đường dẫn hoặc file upload, đọc mọi sheet và giữ ô nguồn.
 Hướng dẫn đầy đủ: [docs/read-excel.md](docs/read-excel.md).
-Đây là tầng đọc dữ liệu; luồng agent hiện chưa nối vào phần này.
+Đây là tầng đọc dữ liệu; luồng agent hackathon (`run.py`) tách riêng và được giữ nguyên bên dưới.
+
+## Ứng dụng Web Local — Tổng hợp & Kiểm tra Lịch (FastAPI + React/Vite)
+
+Ứng dụng web chạy hoàn toàn local trên Windows giúp Admin tải lên nhiều workbook Excel, xem provenance từng ô nguồn, nhờ AI đề xuất chuẩn hóa (có kiểm duyệt con người), chỉnh sửa bản nháp, chạy kiểm tra ràng buộc xác định (`HC`/`SC`), duyệt công bố phiên bản lịch cho Viewer và rollback khi cần.
+
+### 1. Cài đặt môi trường (chạy 1 lần)
+
+```powershell
+python -m pip install -r requirements.txt
+Copy-Item .env.example .env
+Push-Location frontend
+npm install
+Pop-Location
+```
+
+### 2. Khởi tạo SQLite, tạo tài khoản Admin/Viewer & nạp dữ liệu mẫu
+
+```powershell
+# Tạo / nâng cấp schema SQLite tại .local_data/app.db
+python -m alembic upgrade head
+
+# Tạo tài khoản Admin & Viewer local (băm Argon2, nhập mật khẩu tương tác hoặc qua --password)
+python -m backend.cli create-admin --username quantri
+python -m backend.cli create-viewer --username hocvien
+
+# Đổi mật khẩu khi cần (không ghi mật khẩu vào log)
+python -m backend.cli reset-password --username quantri
+
+# (Tùy chọn) Nạp sẵn 1 khóa học synthetic hợp lệ + lịch mẫu để thử nghiệm nhanh
+python -m backend.cli seed-synthetic
+```
+
+> Lưu ý bảo mật: không có mật khẩu mặc định hard-code; dữ liệu SQLite (`.local_data/`), file `.env` và file upload đều bị Git bỏ qua.
+
+### 3. Chạy ứng dụng bằng một lệnh
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/dev.ps1
+```
+
+Lệnh trên khởi động đồng thời:
+- **Frontend (React + Vite):** `http://localhost:5173`
+- **Backend API (FastAPI):** `http://127.0.0.1:8000`
+- **Tài liệu OpenAPI / Swagger:** `http://127.0.0.1:8000/docs`
+
+### 4. Cấu hình AI & Chi phí
+
+Thiết lập trong `.env`:
+- `AI_PROVIDER=fake` *(mặc định)*: chạy offline bằng bộ heuristic cục bộ để demo không tốn chi phí (UI hiển thị nhãn rõ `FAKE/MOCK`).
+- `AI_PROVIDER=openai`: gọi endpoint tương thích OpenAI (`API_KEY`, `OPENAI_BASE_URL`, `MODEL_NAME`), luôn lọc/che PII khi bật chế độ che thông tin, kiểm tra đầu ra bằng Pydantic, lưu cache theo `input_hash` và chặn theo `AI_BUDGET_USD_PER_PROJECT`.
+- `AI_PROVIDER=disabled`: tắt toàn bộ AI; chỉ dùng kiểm tra bằng code xác định và mapping thủ công.
+
+### 5. Kiểm tra chất lượng & Khắc phục sự cố
+
+```powershell
+python -m pytest -v
+python -m ruff check backend codebase tests
+Push-Location frontend; npm run typecheck; npm run build; Pop-Location
+```
+
+- **Lỗi port 8000/5173 đang bận:** kiểm tra và tắt tiến trình cũ đang giữ cổng trước khi chạy lại `scripts/dev.ps1`.
+- **Lỗi thiếu bảng SQLite:** chạy `python -m alembic upgrade head`.
+- **Quên mật khẩu Admin:** chạy `python -m backend.cli reset-password --username <ten>`.
+
+### 6. Tài liệu chi tiết
+
+- Kiến trúc hệ thống & schema DB: [docs/architecture.md](docs/architecture.md)
+- Chính sách bảo mật & quyền riêng tư: [docs/security.md](docs/security.md)
+- Chi phí, cache & giới hạn AI: [docs/cost.md](docs/cost.md)
+- Kịch bản demo từng bước: [docs/demo-script.md](docs/demo-script.md)
 
 ---
 

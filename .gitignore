@@ -36,3 +36,15 @@ evidence/**/raw-*
 # Nguyên file data BTC cấp (data/preclass, data/training-ops… của repo đề): để ở đây, không commit
 data-btc
 data-btc/
+# Database local, uploads, logs, cache và build frontend (tuyệt đối không commit)
+.local_data/
+*.db
+*.sqlite
+*.sqlite3
+logs/
+*.log
+.pytest_cache/
+.ruff_cache/
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/

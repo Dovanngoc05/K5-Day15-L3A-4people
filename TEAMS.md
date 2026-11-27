@@ -4,16 +4,17 @@
 > Giữ nguyên tên file `TEAMS.md` ở thư mục gốc repo, giữ nguyên các dòng `- Tên nhóm:` … và tiêu đề cột của bảng. Chỉ thay chỗ `____`.
 > Kiểm bằng `python run.py check`: phần "Kiểm TEAMS.md" không báo gì là đúng format.
 
-- Tên nhóm: ____
-- Lớp: ____
-- Track: ____
-- Link repo: ____
+- Tên nhóm: 4people
+- Lớp: L3A
+- Track: A
+- Link repo: https://github.com/Dovanngoc05/K5-Day15-L3A-4people
 
 | STT | Họ và tên | Mã học viên | Vai trò | Phần việc chính |
 |---|---|---|---|---|
-| 1 | ____ | ____ | Đội trưởng | ____ |
-| 2 | ____ | ____ | Thành viên | ____ |
-| 3 | ____ | ____ | Thành viên | ____ |
+| 1 | Đỗ Văn Ngọc | 2A202603391 | Đội trưởng | Điều phối, nộp checkpoint, bằng chứng pain & impact (`evidence/`, `spec.md` §1–2) |
+| 2 | Đoàn Nhật Anh | 2A202603408 | Thành viên | Dữ liệu chạy thử, thiết kế kiến trúc & bộ câu thử (`data/`, `spec.md` §3–7, `eval/benchmark.csv`) |
+| 3 | Nguyễn Sơn Tùng | 2A202603658 | Thành viên | Bản chạy thử, công cụ kiểm tra lịch & nối model (`codebase/`) |
+| 4 | Nguyễn Hữu Đức | 2A202603429 | Thành viên | Đánh giá lượt 1–2, mô phỏng chi phí & slide/demo (`eval/`, `cost/`, `slides/`) |
 
 **Quy tắc điền**
 - **Lớp:** `L3A` hoặc `L3B`. **Track:** một chữ `A` (EdTech), `B` (Y tế), `C` (Du lịch), `D` (Thương mại điện tử), `E` (Tài chính) hoặc `F` (Làn khác). **Link repo:** link GitHub công khai của nhóm.

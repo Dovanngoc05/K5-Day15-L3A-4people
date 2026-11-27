@@ -135,3 +135,7 @@ ____
 | 6 | Mô phỏng chi phí khi dùng thật | `cost/` |
 | 7 | Slide + demo + video dự phòng | slide trong repo (PDF, PPTX, HTML…) hoặc link slide ở form CP4 · link video: ____ |
 | + | *Bonus:* người dùng thử | `validation/log.md` |
+
+## Ứng dụng web xếp lịch
+
+Chạy `python -m codebase.schedule_web` sau khi thiết lập bí mật và mật khẩu quản trị. Xem [hướng dẫn cài đặt, nhập Excel và công bố lịch](docs/schedule-web.md).

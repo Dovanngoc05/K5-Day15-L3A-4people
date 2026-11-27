@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lịch đào tạo · AI20K</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='schedule.css') }}">
+</head>
+<body>
+<header>
+<a class="brand" href="{{ url_for('home') }}"><span class="mark">A</span> AI20K <span class="muted">/ Lịch đào tạo</span></a>
+{% if session.role %}<form method="post" action="{{ url_for('logout') }}">
+<input type="hidden" name="csrf" value="{{ session.csrf }}"><button class="quiet">Đăng xuất</button></form>{% endif %}
+</header>
+{% macro schedule_table(entries, admin=false) %}
+{% if entries %}
+<div class="scroll"><table>
+<thead><tr><th>Ngày / Giờ</th><th>Chuyên đề</th><th>Phòng</th><th>Giảng viên</th>{% if admin %}<th>Lab Coach / Key Coach</th><th>Học viên</th>{% endif %}</tr></thead>
+<tbody>{% for cid, row in entries %}
+<tr><td class="when"><strong>{{ row.day }}</strong><br>{{ row.start|clock }}–{{ row.end|clock }}</td>
+<td><strong>{{ row.subject }}</strong>{% if admin %}<small>{{ cid }}{% if row.locked %} · Đã khóa{% endif %}</small>{% endif %}</td>
+<td>{{ row.rooms|join(', ') }}</td><td>{{ row.teacher }}</td>
+{% if admin %}<td>{{ row.lab|join(', ') or '—' }}<small>Key: {{ row.key|join(', ') or '—' }}</small></td><td>{{ row.students|length }}</td>{% endif %}</tr>
+{% endfor %}</tbody>
+</table></div>
+{% else %}<p class="muted">Chưa có buổi học được công bố.</p>{% endif %}
+{% endmacro %}
+<main class="{{ 'login' if page == 'login' else '' }}">
+{% for message in get_flashed_messages() %}<p class="notice" role="status">{{ message }}</p>{% endfor %}
+{% if page == 'login' %}
+<section class="hero"><h1>Lịch đào tạo</h1><p>Đăng nhập để xem lịch cá nhân hoặc quản lý lịch học.</p></section>
+<div class="grid">
+<section class="panel"><h2>Học viên</h2>
+<form method="post"><input type="hidden" name="csrf" value="{{ session.csrf }}"><input type="hidden" name="role" value="student">
+<label>Mã học viên<input name="student_id" autocomplete="username" maxlength="500" required></label>
+<label>Mã truy cập<input type="password" name="password" autocomplete="current-password" maxlength="512" required></label><button>Xem lịch cá nhân</button></form>
+</section>
+<section class="panel"><h2>Ban đào tạo</h2><p class="muted">Dành cho ban đào tạo, Key Coach và Day Lead.</p>
+<form method="post"><input type="hidden" name="csrf" value="{{ session.csrf }}"><input type="hidden" name="role" value="admin">
+<label>Mật khẩu quản trị<input type="password" name="password" autocomplete="current-password" maxlength="512" required></label><button>Vào trang quản trị</button></form>
+</section></div>
+{% elif page == 'admin' %}
+<section class="hero"><h1>Quản trị lịch học</h1><p>{{ class_count }} buổi đã công bố · {{ student_count }} học viên</p></section>
+<div class="grid admin-grid">
+<section class="panel"><h2>Nhập dữ liệu Excel</h2><p class="muted">Tải ba workbook gốc để tạo bản nháp, hoặc dùng bộ đã bổ sung để kiểm tra và công bố.</p>
+<form method="post" enctype="multipart/form-data">
+<input type="hidden" name="csrf" value="{{ session.csrf }}">
+{% for file in files %}<label>{{ file }}<input type="file" name="file{{ loop.index0 }}" accept=".xlsx" required></label>{% endfor %}
+<div class="actions"><button class="quiet" name="action" value="draft">Tải bản nháp Excel</button><button class="quiet" name="action" value="check">Kiểm tra và xếp thử</button><button name="action" value="publish">Xếp và công bố</button></div>
+</form></section>
+<section class="panel"><h2>Mã truy cập học viên</h2>
+<form method="post"><input type="hidden" name="csrf" value="{{ session.csrf }}">
+<label>Mã học viên<input name="student_id" maxlength="500" required></label><button class="quiet" name="action" value="issue">Lấy mã truy cập</button></form>
+{% if issued %}<p class="notice"><strong>{{ issued[0] }}</strong><br><code>{{ issued[1] }}</code></p>{% endif %}
+</section></div>
+{% if preview is not none %}<section class="panel full"><h2>Kết quả xếp thử</h2><p class="muted">{{ status }} · {{ score }} điểm phạt</p>{{ schedule_table(preview, true) }}</section>{% endif %}
+<section class="panel full"><h2>Lịch đã công bố</h2>
+<form method="get" class="filter"><label>Lọc theo mã học viên hoặc tên nhân sự<input name="person" value="{{ person }}" maxlength="500"></label><button class="quiet">Lọc lịch</button>{% if person %}<a href="{{ url_for('admin') }}">Bỏ lọc</a>{% endif %}</form>
+{{ schedule_table(schedule, true) }}</section>
+{% elif page == 'student' %}
+<section class="hero"><h1>Lịch học của bạn</h1><p>{{ name }} · {{ schedule|length }} buổi học</p></section>
+<section class="panel full">{{ schedule_table(schedule) }}</section>
+{% else %}<section class="panel"><h1>Không thể xử lý yêu cầu</h1><p>{{ message }}</p><a href="{{ url_for('home') }}">Về trang chính</a></section>{% endif %}
+</main>
+</body>
+</html>

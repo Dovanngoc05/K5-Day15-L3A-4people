@@ -90,8 +90,6 @@ Cột `pass` trong `eval/run-N.csv` vẫn được chấm theo toàn bộ `pass_
 
 Kiểm tra cấu trúc bằng `python run.py check`. Chưa chạy đánh giá model cho bộ 25 câu này; `codebase/agent.py` hiện còn workflow mẫu và cần nối công cụ đọc Excel trước khi đánh giá khả năng tra lịch.
 
-Kiểm tra cấu trúc bằng `python run.py check`. Chưa chạy đánh giá model cho bộ 25 câu này; `codebase/agent.py` hiện còn workflow mẫu và cần nối công cụ đọc Excel trước khi đánh giá khả năng tra lịch.
-
 ## 5. Đã chạy gì
 
 | Lượt | Run ID | Model | Cấu hình (prompt / công cụ / thay đổi) | Đạt / tổng | % | Đạt chuẩn? |

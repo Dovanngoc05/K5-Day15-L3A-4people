@@ -11,6 +11,14 @@
 | Phỏng vấn (≥3 người ngoài nhóm, đúng người dùng) | ☐ *(đang hẹn & thực hiện tối 27/11 – sáng 28/11)* | `evidence/interviews/P1.md`… |
 | Khảo sát (≥20 người ngoài nhóm, đúng người dùng) | ☐ *(đã tạo & mở form 19:00 ngày 27/11, đang thu phản hồi)* | `evidence/survey/questions.md` · `evidence/survey/results.csv` *(cập nhật CP3)* |
 
+- **Tiến độ tại mốc CP2 (19:15 Thứ Sáu 27/11):**
+  - Đã tạo và mở **Google Form khảo sát ẩn danh 9 câu hành vi** dành cho Key Coach / Day Lead / Lab Coach / Ban đào tạo tại `https://docs.google.com/forms/d/1WnyFE3oAB9c6tT7-6Q9UYDxRnY-uH0RmSDHto4qlm7w/viewform` (chi tiết bộ câu hỏi: `evidence/survey/questions.md`).
+  - Đang tiếp tục hẹn phỏng vấn sâu **≥3 Key Coach / Lab Coach ngoài nhóm** (10–15 phút/người, hỏi chuyện 1 tháng qua) để kiểm chéo và thu ≥5 trích dẫn nguyên văn đã ẩn danh trước CP3 (10:00 Thứ Bảy 28/11).
+  - Chưa ghi nhận số liệu tổng hợp hay kết luận pain tại mốc CP2; bộ `training-ops` của BTC là giả lập, không tính là bằng chứng pain.
+| Đào data (x/N, %, cách đếm chạy lại được, ≥5 ví dụ) | ☐ *(không dùng cho bộ giả lập training-ops)* | `evidence/data-mining.md` |
+| Phỏng vấn (≥3 người ngoài nhóm, đúng người dùng) | ☐ *(đang hẹn & thực hiện tối 27/11 – sáng 28/11)* | `evidence/interviews/P1.md`… |
+| Khảo sát (≥20 người ngoài nhóm, đúng người dùng) | ☐ *(đã tạo & mở form 19:00 ngày 27/11, đang thu phản hồi)* | `evidence/survey/questions.md` · `evidence/survey/results.csv` *(cập nhật CP3)* |
+
 - **Tiến độ tại mốc CP2 (19:23 Thứ Sáu 27/11):**
   - Đã tạo và mở **Google Form khảo sát ẩn danh 9 câu hành vi** từ 19:00 ngày 27/11 tại `https://docs.google.com/forms/d/1WnyFE3oAB9c6tT7-6Q9UYDxRnY-uH0RmSDHto4qlm7w/viewform` (bộ câu hỏi: `evidence/survey/questions.md`, bản xuất đã xoá cột liên hệ câu 9: `evidence/survey/results.csv`).
   - **Kết quả khảo sát sơ bộ (tại 19:23, `n = 4` — chưa đạt ngưỡng ≥20, không ghi `%`, tách riêng theo vai):**

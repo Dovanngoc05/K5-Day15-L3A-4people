@@ -11,15 +11,15 @@ from urllib.error import URLError
 
 from openpyxl import load_workbook
 
-from ..ai import ModelResponseTruncated, call_model
+from ..ai import ModelInputTooLarge, ModelResponseTruncated, call_model
 from .excel import SCHEMA, text
-from .importer import import_workbook
+from .importer import LAB_ROOMS_SHEET, import_workbook, lab_room_rows
 from .security import inspect_xlsx
 from .solver import readiness
 
 
 TEACHING_SHEET = "Khoá 9 (GĐ1)"
-COACH_SHEETS = ("Lịch lab 1504-2404", "Lịch lab 2604-0805")
+COACH_SHEETS = ("Lịch lab 1504-2404", LAB_ROOMS_SHEET)
 DATE = re.compile(r"\b\d{2}/\d{2}/\d{4}\b")
 SESSION = re.compile(r"\b(L[23](?:A\+B|AB|A|B))\s*[—–-]\s*((?:LEC|LAB)\s*\d+)\b")
 ROOM = re.compile(r"\b[A-Z]\d{3}\b")
@@ -263,6 +263,7 @@ def split_truncated_batch(cells):
 
 def collect_sheet_facts(report, coverage, cells, port, model, timeout, batch_chars, stats=None):
     file, sheet, context = (coverage[key] for key in ("file", "sheet", "context"))
+    consecutive_timeouts = 0
     for batch in batches(cells.items(), batch_chars):
         pending = [batch]
         while pending:
@@ -271,16 +272,26 @@ def collect_sheet_facts(report, coverage, cells, port, model, timeout, batch_cha
                 facts, issues = model_facts(
                     current, port, model, timeout, file=file, sheet=sheet, context=context, stats=stats
                 )
-            except ModelResponseTruncated:
-                coverage["truncated_batches"] += 1
+            except (ModelResponseTruncated, ModelInputTooLarge, TimeoutError) as exc:
+                if isinstance(exc, ModelResponseTruncated):
+                    coverage["truncated_batches"] += 1
+                    reason = "response_truncated"
+                elif isinstance(exc, ModelInputTooLarge):
+                    reason = "context_limit"
+                else:
+                    reason = "request_timeout"
+                    consecutive_timeouts += 1
+                    if consecutive_timeouts >= 3:
+                        raise ValueError(f"llama-server quá thời gian chờ 3 lần liên tiếp ở sheet {sheet}.") from exc
                 parts = split_truncated_batch(current)
                 if parts:
                     pending.extend(reversed(parts))
                 else:
                     report["model_extraction_issues"].append(
-                        dict(file=file, sheet=sheet, cell=next(iter(current)), reason="response_truncated")
+                        dict(file=file, sheet=sheet, cell=next(iter(current)), reason=reason)
                     )
                 continue
+            consecutive_timeouts = 0
             report["model_facts_for_review"].extend(
                 dict(fact, file=file, sheet=sheet, context=context) for fact in facts
             )
@@ -301,6 +312,10 @@ def extract(teaching, coaches):
         rosters = [coach_book[name] for name in COACH_SHEETS]
         teaching_rows = list(timetable(main, teaching.name))
         coach_rows = [row for sheet in rosters for row in coach_schedule(sheet, coaches.name)]
+        lab_rooms = [
+            dict(row, source=f"{coaches.name}/{LAB_ROOMS_SHEET}!{row['cells']}")
+            for row in lab_room_rows(coach_book[LAB_ROOMS_SHEET])
+        ]
         sheets = [
             (file, sheet.title, dict(source_cells(sheet)))
             for file, book in [(teaching.name, teaching_book), (coaches.name, coach_book)]
@@ -312,6 +327,13 @@ def extract(teaching, coaches):
             coach_book.close()
 
     capacities = defaultdict(lambda: defaultdict(list))
+    lab_room_ids = set()
+    for row in lab_rooms:
+        label = row["room_label"]
+        lab_room_ids.update(ROOM.findall(label))
+        if ROOM.fullmatch(label):
+            capacities[label][row["listed_capacity"]].append(row["source"])
+
     room_mentions = defaultdict(list)
     for file, sheet, cells in sheets:
         for cell, value in cells.items():
@@ -323,10 +345,14 @@ def extract(teaching, coaches):
             for room, count in CAPACITY.findall(value):
                 capacities[room][int(count)].append(source)
     rooms = {row["room_id"]: row for row in tables["Rooms"]}
-    for room in sorted(set(capacities) | {rid for row in teaching_rows + coach_rows for rid in row["rooms"]}):
+    observed_rooms = {rid for row in teaching_rows + coach_rows for rid in row["rooms"]}
+    for room in sorted(set(capacities) | lab_room_ids | observed_rooms):
         item = rooms.setdefault(room, {"room_id": room, "capacity": ""})
         if len(capacities[room]) == 1:
             item["capacity"] = next(iter(capacities[room]))
+        elif len(capacities[room]) > 1:
+            values = ", ".join(map(str, sorted(capacities[room])))
+            notes.append(f"{room}: sức chứa trong nguồn có nhiều giá trị ({values}); cần xác nhận.")
     tables["Rooms"] = list(rooms.values())
 
     teaching_by_session = defaultdict(list)
@@ -366,6 +392,7 @@ def extract(teaching, coaches):
     return {
         "tables": tables, "teaching_observations": teaching_rows, "coach_observations": coach_rows,
         "room_capacity_evidence": {room: dict(values) for room, values in capacities.items() if values},
+        "lab_room_capacity_rows": lab_rooms,
         "room_mentions_for_review": dict(room_mentions),
         "sheet_coverage": [
             dict(file=file, sheet=sheet, context=SHEET_CONTEXT.get(sheet, "unclassified"),
@@ -383,7 +410,7 @@ def extract(teaching, coaches):
 
 
 def run_extraction(teaching, coaches, output_path, *, port=8080, model="local-model",
-                   timeout=600, batch_chars=15000, without_model=False, progress=None, stats=None):
+                   timeout=600, batch_chars=2600, without_model=False, progress=None, stats=None):
     report, sheets = extract(teaching, coaches)
     if not without_model:
         for coverage, (_, sheet, cells) in zip(report["sheet_coverage"], sheets):

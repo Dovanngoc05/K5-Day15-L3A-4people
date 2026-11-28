@@ -21,6 +21,7 @@ from .importer import combine_import, import_workbook
 from .security import inspect_xlsx, scan_payload, scanner_command
 from .solver import readiness, solve
 from .store import Store, stamp
+from .teacher_profiles import REPORT_NAME, fill_report_profiles
 
 
 def create_app(root=None):
@@ -212,12 +213,15 @@ def create_app(root=None):
             imports=[]
             notes=[]
             manifests=[]
+            room_evidence=[]
             for file in files:
                 payload=file.read(10*1024*1024+1)
                 name=inspect_xlsx(file.filename,payload)
                 engine=scan_payload(payload)
-                tables,messages=import_workbook(payload)
+                evidence=[]
+                tables,messages=import_workbook(payload,room_evidence=evidence)
                 source_id=secrets.token_hex(12)
+                room_evidence.extend(dict(file=name,source_id=source_id,**row) for row in evidence)
                 source_folder=storage.root/"uploads"
                 source_folder.mkdir(parents=True,exist_ok=True)
                 (source_folder/(source_id+".xlsx")).write_bytes(payload)
@@ -228,11 +232,19 @@ def create_app(root=None):
                 manifests.append(dict(file=name,source_id=source_id,sha256=hashlib.sha256(payload).hexdigest(),scanner=engine,scanned_at=stamp()))
             with storage.lock:
                 before=storage.fingerprint()
-                result=combine_import(storage.data(),imports)
-                guard_locked(storage.data(),result)
+                current_data=storage.data()
+                result=combine_import(current_data,imports)
+                profiles=fill_report_profiles(storage.root / REPORT_NAME,result)
+                if profiles:
+                    notes.append(f"{REPORT_NAME}: bổ sung thông tin còn thiếu cho {len(profiles)} hồ sơ giảng dạy theo mã người.")
+                guard_locked(current_data,result)
                 ident=secrets.token_hex(12)
                 pending=result | {"_Notes":[dict(message=m) for m in notes],"_Manifest":manifests,
                     "_Meta":[dict(key="base",value=before),dict(key="actor",value=g.user["username"])]}
+                if profiles:
+                    pending["_Profiles"]=profiles
+                if room_evidence:
+                    pending["_LabRoomEvidence"]=room_evidence
                 atomic_write(storage.root/"pending"/(ident+".xlsx"),pending)
                 session["pending"]=ident
             return redirect(url_for("preview_upload"))
@@ -273,6 +285,9 @@ def create_app(root=None):
                 state=storage.state()
                 state.setdefault("Sources",[]).extend(tables["_Manifest"])
                 state.setdefault("SourceNotes",[]).extend(dict(import_id=path.stem,actor=g.user["username"],message=r["message"]) for r in tables["_Notes"])
+                if tables.get("_LabRoomEvidence"):
+                    state.setdefault("LabRoomEvidence",[]).extend(
+                        dict(import_id=path.stem,**row) for row in tables["_LabRoomEvidence"])
                 atomic_write(storage.root/"state.xlsx",state)
                 path.unlink()
                 session.pop("pending",None)

@@ -38,3 +38,7 @@ evidence/**/raw-*
 data-btc
 data-btc/
 .schedule-data/
+
+# Nextcloud conflict copies and Excel lock files
+* (conflicted copy *)*
+~$*.xlsx

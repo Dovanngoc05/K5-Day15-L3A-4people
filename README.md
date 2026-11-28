@@ -168,3 +168,17 @@ ____
 ## Ứng dụng web xếp lịch
 
 Chạy `python -m codebase.schedule_web` sau khi thiết lập bí mật và mật khẩu quản trị. Xem [hướng dẫn cài đặt, nhập Excel và công bố lịch](docs/schedule-web.md).
+
+## Local AI schedule extraction
+
+Set `LLAMACPPPATH` to the llama-server executable and `GGUFPath` to your GGUF
+model in the repository's ignored `.env` file. Start the web app with
+`python run.py`. In the admin upload panel, select the teaching and lab-coach
+workbooks, then choose **Trích xuất bằng AI** to scan them and run local extraction.
+The job stops its llama-server process and provides a JSON report for review.
+
+To run extraction from the command line with an existing llama-server:
+
+```powershell
+python -m codebase.scheduler.extract_schedule --out runtime/schedule-extraction.json
+```

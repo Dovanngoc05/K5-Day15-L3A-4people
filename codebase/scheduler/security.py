@@ -40,7 +40,26 @@ def scan_payload(payload):
         except (OSError, subprocess.TimeoutExpired) as exc:
             raise ValueError("Không hoàn tất quét virus; file bị chặn.") from exc
         if result.returncode != 0:
-            raise ValueError(engine + ": phát hiện nguy cơ hoặc không quét được; file bị chặn. Kiểm tra trình quét và cơ sở dữ liệu virus.")
+            if engine == "Microsoft Defender":
+                error_code = re.search(rb"\bhr\s*=\s*(0x[0-9a-f]{8})\b", result.stdout + b"\n" + result.stderr, re.I)
+                if error_code:
+                    code = error_code.group(1).decode("ascii")
+                    raise ValueError(
+                        f"Microsoft Defender không quét được file (mã {code}). "
+                        "Kiểm tra Microsoft Defender Antivirus trong Windows Security "
+                        "hoặc cấu hình ClamAV bằng CLAMSCAN_PATH. File chưa được nhập."
+                    )
+            elif result.returncode == 1:
+                raise ValueError("ClamAV phát hiện nguy cơ. File chưa được nhập.")
+            else:
+                raise ValueError(
+                    f"ClamAV không quét được file (mã thoát {result.returncode}). "
+                    "Kiểm tra cài đặt và cập nhật cơ sở dữ liệu virus. File chưa được nhập."
+                )
+            raise ValueError(
+                f"Microsoft Defender báo phát hiện nguy cơ hoặc lỗi quét (mã thoát {result.returncode}). "
+                "Kiểm tra Windows Security. File chưa được nhập."
+            )
     return engine
 
 

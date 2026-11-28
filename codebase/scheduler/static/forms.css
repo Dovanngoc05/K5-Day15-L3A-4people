@@ -1,2 +1,29 @@
 textarea{display:block;width:100%;margin-top:6px;border:1px solid #cbd7e1;border-radius:6px;padding:12px;font:15px 'Segoe UI',sans-serif;color:#183047;resize:vertical}.checkbox{display:flex;align-items:flex-start;gap:9px;font-weight:400}.checkbox input{width:18px;height:18px;min-height:18px;flex-shrink:0;margin:4px 0 0}select[multiple]{min-height:145px}
 @media(max-width:700px){.sidebar-bottom{display:flex;margin:10px 0 0;padding:0;align-items:center;justify-content:space-between}.sidebar-bottom>p,.sidebar-bottom>.local-badge{display:none}.sidebar-bottom .identity{margin:0;padding:0;border:0;font-size:13px}.sidebar-bottom .identity small{display:none}.sidebar-bottom form{margin-left:auto}.sidebar-bottom .logout{padding:4px 0}}
+
+.extraction-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.extraction-status {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.extraction-spinner {
+  flex: none;
+  width: 1.1rem;
+  height: 1.1rem;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: extraction-spin 0.8s linear infinite;
+}
+@keyframes extraction-spin {
+  to { transform: rotate(1turn); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .extraction-spinner { animation: none; }
+}

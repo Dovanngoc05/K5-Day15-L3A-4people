@@ -1,0 +1,22 @@
+{% extends 'base.html' %}
+{% block title %}Trích xuất bằng AI · 4people{% endblock %}
+{% block head %}
+{% if job.status == 'running' %}<meta http-equiv="refresh" content="3">{% endif %}
+{% endblock %}
+{% block content %}
+<h1>Trích xuất lịch bằng AI</h1>
+<section class="panel">
+  <p class="extraction-status" role="status">
+    {% if job.status == 'running' %}<span class="extraction-spinner" aria-hidden="true"></span>{% endif %}
+    {{ job.message }}
+  </p>
+  {% if job.status == 'done' %}
+  <p>{{ job.fact_count }} phát hiện từ AI đang chờ duyệt.</p>
+  {% if job.issue_count %}
+  <p>{{ job.issue_count }} vấn đề khi trích xuất. Xem mục <code>model_extraction_issues</code> trong báo cáo để rà soát các ô được ghi nhận.</p>
+  {% endif %}
+  <a class="button primary" href="{{ url_for('extraction_report', ident=job.id) }}">Tải báo cáo JSON</a>
+  {% endif %}
+  <a class="button secondary" href="{{ url_for('admin') }}">Về trang điều phối</a>
+</section>
+{% endblock %}

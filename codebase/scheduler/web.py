@@ -15,6 +15,8 @@ from werkzeug.security import check_password_hash, generate_password_hash
 
 from .demo import demo_data
 from .excel import SCHEMA, atomic_write, empty_data, read_tables, text, workbook_bytes
+from ..ai import llama_model_paths
+from .extraction_job import ExtractionJob
 from .importer import combine_import, import_workbook
 from .security import inspect_xlsx, scan_payload, scanner_command
 from .solver import readiness, solve
@@ -24,6 +26,7 @@ from .store import Store, stamp
 def create_app(root=None):
     app=Flask(__name__)
     storage=Store(root or os.environ.get("A5_DATA_DIR", "runtime"))
+    extraction=ExtractionJob(storage.root, app.logger)
     secret=storage.root/"session.key"
     if not secret.exists():
         try:
@@ -133,9 +136,11 @@ def create_app(root=None):
                 ver=storage.version(p.stem)
                 meta={r["key"]:r["value"] for r in ver["Meta"]}
                 revisions.append(meta)
+        job=extraction.snapshot()
         return render_template("admin.html",data=data,problems=problems[:100],problem_count=len(problems),
             scanner=scanner_command()[0],revisions=revisions[:20],published=published,
-            audit=list(reversed(state.get("Audit",[])))[:15],accounts=state.get("Accounts",[]))
+            audit=list(reversed(state.get("Audit",[])))[:15],accounts=state.get("Accounts",[]),
+            extraction_job=job if job and job["owner"]==g.user["username"] else None)
 
     @app.post("/admin/demo")
     @require("admin")
@@ -157,6 +162,44 @@ def create_app(root=None):
             if assumptions:
                 data["Assumptions"]=assumptions
         return send_file(BytesIO(workbook_bytes(data,SCHEMA)),download_name="a5-input.xlsx",as_attachment=True,mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+
+    @app.post("/admin/extraction")
+    @require("admin")
+    def start_extraction():
+        try:
+            executable, model = llama_model_paths()
+            files = request.files.getlist("files")
+            if len(files) != 2:
+                raise ValueError("Chọn đúng hai workbook: lịch giảng dạy và lịch Lab Coach.")
+            workbooks = []
+            for file in files:
+                payload = file.read(10 * 1024 * 1024 + 1)
+                workbooks.append((inspect_xlsx(file.filename, payload), payload))
+            ident = extraction.start(g.user["username"], workbooks, executable, model)
+        except Exception as exc:
+            app.logger.warning("Extraction start blocked: %s", type(exc).__name__)
+            flash(safe_message(exc), "error")
+            return redirect(url_for("admin"))
+        return redirect(url_for("extraction_status", ident=ident), code=303)
+
+    def own_extraction(ident):
+        job = extraction.snapshot()
+        if not job or job["id"] != ident or job["owner"] != g.user["username"]:
+            abort(404)
+        return job
+
+    @app.get("/admin/extraction/<ident>")
+    @require("admin")
+    def extraction_status(ident):
+        return render_template("extraction.html", job=own_extraction(ident))
+
+    @app.get("/admin/extraction/<ident>/report")
+    @require("admin")
+    def extraction_report(ident):
+        if own_extraction(ident)["status"] != "done":
+            abort(404)
+        return send_file(extraction.report_path(ident), as_attachment=True,
+                         download_name="schedule-extraction.json", mimetype="application/json")
 
     @app.post("/admin/upload")
     @require("admin")

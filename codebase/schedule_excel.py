@@ -233,12 +233,14 @@ def draft(books):
     def sheet(name, data=()):
         return name, SCHEMA[name].split(), data
 
-    return (
-        write_book([sheet("Classes", classes), sheet("Slots", slots),
-                    sheet("Teachers", [(p, None, None, None) for p in sorted(teacher_hints)]),
-                    sheet("TeacherAvailability"),
-                    ("SourceHints", ["class_id", "session", "source", "shift", "coaches"], hints)]),
-        write_book([sheet("Coaches", [(p, ";".join(sorted(r)), None, None, None)
-                                      for p, r in sorted(coach_roles.items())]), sheet("CoachAvailability")]),
-        write_book([sheet("Learners", students), sheet("LearnerAvailability")]),
-    )
+    return [
+        sheet("Classes", classes),
+        sheet("Slots", slots),
+        sheet("Teachers", [(p, None, None, None) for p in sorted(teacher_hints)]),
+        sheet("TeacherAvailability"),
+        sheet("Coaches", [(p, ";".join(sorted(r)), None, None, None) for p, r in sorted(coach_roles.items())]),
+        sheet("CoachAvailability"),
+        sheet("Learners", students),
+        sheet("LearnerAvailability"),
+        ("SourceHints", ["class_id", "session", "source", "shift", "coaches"], hints),
+    ]

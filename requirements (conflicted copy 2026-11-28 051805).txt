@@ -1,0 +1,8 @@
+# Python 3.10+. Cài web và solver: python -m pip install -r requirements.txt
+# Bộ chạy eval/simulate gốc giữ nguyên; web dùng các thư viện bên dưới.
+openpyxl>=3.1.5,<4
+Flask>=3.1,<4
+ortools>=9.10,<10
+defusedxml>=0.7.1,<1
+filelock>=3.16,<4
+waitress>=3,<4

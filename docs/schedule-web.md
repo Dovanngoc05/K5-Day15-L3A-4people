@@ -8,7 +8,7 @@ Chạy trong thư mục `K5-Day15-L3A-4people` bằng PowerShell.
 python -m pip install -r requirements.txt
 $env:SCHEDULE_SECRET = python -c "import secrets; print(secrets.token_urlsafe(48))"
 $env:SCHEDULE_ADMIN_PASSWORD = python -c "import getpass; print(getpass.getpass('Mat khau quan tri (it nhat 16 ky tu): '))"
-python -m codebase.schedule_web
+python run.py
 ```
 
 Mở [trang lịch đào tạo](http://127.0.0.1:8080). Giữ `SCHEDULE_SECRET` trong cấu hình bí mật nếu dùng qua nhiều lần khởi động. Thay giá trị này sẽ vô hiệu hóa phiên và mã truy cập học viên cũ. Ban đào tạo, Key Coach và Day Lead dùng vai trò quản trị chung. Nếu phục vụ qua mạng, đặt sau HTTPS và bật `SCHEDULE_HTTPS=1` để cookie chỉ truyền qua HTTPS.
@@ -17,25 +17,28 @@ Upload được quét trên máy chủ bằng Microsoft Defender trên Windows h
 
 ## Từ lịch gốc đến lịch công bố
 
-1. Trong trang quản trị, tải lên ba workbook trong `data/` và chọn **Tải bản nháp Excel**. Giải nén ba tệp chuẩn hóa trong `lich-nhap.zip`.
-2. Đối chiếu sheet `SourceHints` với lịch nguồn. Nhập nhóm cho từng học viên, năng lực, giờ rảnh, sức chứa thực tế và số coach yêu cầu. Một số buổi có hai cột giảng song song cho cùng nhóm. Hãy tách nhóm học viên theo phòng hoặc gộp phòng thành một phương án có sức chứa tổng đã xác nhận và một giảng viên phụ trách. Điền nhóm dự khai giảng. Xác minh các phân công coach gợi ý và giờ học đặc biệt.
-3. Tải ba tệp đã điền vào trang quản trị và chọn **Kiểm tra và xếp thử**. Nếu cần đổi giờ hoặc phòng, thêm các phương án trong `Slots`. Trang báo dòng hoặc lớp gặp lỗi. `INFEASIBLE` nghĩa là các buổi không thể xếp đồng thời theo ràng buộc. `FEASIBLE` là lịch hợp lệ tìm được trong giới hạn 20 giây. `OPTIMAL` là lịch có điểm phạt thấp nhất đã được chứng minh.
-4. Chọn **Xếp và công bố** với bộ tệp đã kiểm tra. Ứng dụng chạy lại solver với lịch đã công bố mới nhất. Sau đó dùng bộ lọc để xem lịch của một nhân sự hoặc học viên. Dùng **Lấy mã truy cập** và chuyển riêng mã cho đúng học viên. Học viên đăng nhập bằng mã học viên và mã truy cập.
+1. Trong trang quản trị, tải lên ba workbook trong `data/` và chọn **Nhập dữ liệu từ Excel**. Sau khi quét và đọc tệp, ứng dụng mở bảng nhập liệu trên web. Ba tệp gốc được lưu nguyên vẹn.
+2. Dùng các tab để nhập nhóm học viên, năng lực, giờ rảnh, sức chứa và số coach cần có. Có thể nhập từng ô hoặc dán một vùng ô từ Excel. Bấm **Lưu bảng** trước khi chuyển tab. Mọi thay đổi được lưu vào workbook riêng `ClassesesData.xlsx`.
+3. Dùng tab **Đối chiếu lịch gốc** để kiểm tra các chi tiết đã trích. Một số buổi có hai cột giảng song song cho cùng nhóm. Hãy tách nhóm theo phòng hoặc gộp phòng thành một phương án có sức chứa tổng đã xác nhận và một giảng viên phụ trách. Điền nhóm khai giảng và xác minh giờ học đặc biệt.
+4. Quay về trang quản trị và chọn **Kiểm tra và xếp thử**. Solver đọc trực tiếp `ClassesesData.xlsx` đã lưu. `INFEASIBLE` nghĩa là các buổi không thể xếp đồng thời theo ràng buộc. `FEASIBLE` là lịch hợp lệ tìm được trong giới hạn 20 giây. `OPTIMAL` là lịch có điểm phạt thấp nhất đã được chứng minh.
+5. Chọn **Xếp và công bố**. Ứng dụng chạy lại solver với lịch đã công bố mới nhất. Dùng bộ lọc để xem lịch từng người. Dùng **Lấy mã truy cập** và chuyển riêng mã cho đúng học viên.
 
-Ba workbook nguồn và workbook kết quả được lưu theo từng lần công bố dưới `.schedule-data/`. Lịch hiện hành được cập nhật sau khi cả bộ tệp đã được ghi xong. Lịch xếp thử chỉ xuất hiện trong phản hồi quản trị. `python run.py` tiếp tục chạy luồng dòng lệnh hackathon hiện có.
+Dữ liệu làm việc được giữ dưới `.schedule-data/` qua các lần khởi động. Khi công bố, ứng dụng lưu một bản của ba tệp gốc, `ClassesesData.xlsx` và lịch kết quả. Nút tải `ClassesesData.xlsx` dùng để lấy bản sao khi cần. Dùng `python run.py cli` để chạy luồng dòng lệnh hackathon.
 
 ## Các sheet và quy ước
 
-| Workbook | Sheet | Cách điền |
+Tất cả các sheet dưới đây nằm trong `ClassesesData.xlsx`.
+
+| Nhóm dữ liệu | Sheet | Cách điền |
 |---|---|---|
-| teaching-schedule.xlsx | Classes | `class_id` là mã ổn định của buổi. `subject` phải khớp với kỹ năng của nhân sự. `groups` chứa một hoặc nhiều nhóm phân cách bằng dấu chấm phẩy. `assistants` và `keys` là số Lab Coach và Key Coach bắt buộc, điền 0 nếu không cần. |
-| teaching-schedule.xlsx | Slots | Một dòng cho một phương án `slot_id` duy nhất của lớp. Điền `day`, `start`, `end`, `rooms` và `capacity`. Với nhiều phòng dùng đồng thời, phân cách mã phòng bằng dấu chấm phẩy và khai sức chứa tổng. |
-| teaching-schedule.xlsx | Teachers | `person`, `skills`, `daily_minutes`, `weekly_minutes`. Kỹ năng là danh sách tên chuyên đề phân cách bằng dấu chấm phẩy. |
-| teaching-schedule.xlsx | TeacherAvailability | `person`, `day`, `start`, `end`, `preferred`. |
-| lab-coach-schedule.xlsx | Coaches | Tương tự Teachers, thêm `role` với giá trị `lab`, `key` hoặc `lab;key`. Dùng cùng một tên cho cùng một người trên các sheet. |
-| lab-coach-schedule.xlsx | CoachAvailability | Cùng cấu trúc với TeacherAvailability. |
-| learners.xlsx | Learners | `student_id`, `full_name`, `group`. Mỗi học viên thuộc một nhóm. Một lớp có thể nhận nhiều nhóm. |
-| learners.xlsx | LearnerAvailability | Cùng cấu trúc với TeacherAvailability. Cột `person` là mã học viên hoặc `group:TênNhóm`. Nếu một học viên có dòng riêng trong ngày, dùng các dòng riêng cho ngày đó. |
+| Giảng dạy | Classes | `class_id` là mã ổn định của buổi. `subject` phải khớp với kỹ năng của nhân sự. `groups` chứa một hoặc nhiều nhóm phân cách bằng dấu chấm phẩy. `assistants` và `keys` là số Lab Coach và Key Coach bắt buộc, điền 0 nếu không cần. |
+| Giảng dạy | Slots | Một dòng cho một phương án `slot_id` duy nhất của lớp. Điền `day`, `start`, `end`, `rooms` và `capacity`. Với nhiều phòng dùng đồng thời, phân cách mã phòng bằng dấu chấm phẩy và khai sức chứa tổng. |
+| Giảng dạy | Teachers | `person`, `skills`, `daily_minutes`, `weekly_minutes`. Kỹ năng là danh sách tên chuyên đề phân cách bằng dấu chấm phẩy. |
+| Giảng dạy | TeacherAvailability | `person`, `day`, `start`, `end`, `preferred`. |
+| Coach | Coaches | Tương tự Teachers, thêm `role` với giá trị `lab`, `key` hoặc `lab;key`. Dùng cùng một tên cho cùng một người trên các sheet. |
+| Coach | CoachAvailability | Cùng cấu trúc với TeacherAvailability. |
+| Học viên | Learners | `student_id`, `full_name`, `group`. Mỗi học viên thuộc một nhóm. Một lớp có thể nhận nhiều nhóm. |
+| Học viên | LearnerAvailability | Cùng cấu trúc với TeacherAvailability. Cột `person` là mã học viên hoặc `group:TênNhóm`. Nếu một học viên có dòng riêng trong ngày, dùng các dòng riêng cho ngày đó. |
 
 Dùng ngày `YYYY-MM-DD`, giờ địa phương `HH:MM`. Khai khoảng rảnh đủ bao phủ toàn bộ thời lượng buổi. Điền `preferred=1` cho khung giờ mong muốn hoặc `0` cho khung giờ rảnh bình thường. Chỉ tính phạt sở thích nếu người đó có ít nhất một khung mong muốn.
 

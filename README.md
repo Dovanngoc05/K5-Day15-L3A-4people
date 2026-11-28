@@ -1,63 +1,4 @@
-# 4people — Xếp lịch đào tạo bằng Excel và CP-SAT (Track A5)
-
-## Chạy web local
-
-Python 3.10+. Không cần SQL, hosting hoặc API key để dùng bộ xếp lịch.
-
-```powershell
-python -m venv .venv
-.venv\Scripts\python.exe -m pip install -r requirements.txt
-.venv\Scripts\python.exe app.py init-admin
-.venv\Scripts\python.exe run.py
-```
-
-Mở **http://127.0.0.1:8000**. `init-admin` hỏi mật khẩu riêng (ít nhất 12 ký tự), không có mật khẩu mặc định. Nếu đã có tài khoản thì bỏ bước này. macOS/Linux dùng `.venv/bin/python`.
-
-- **Admin:** upload nhiều `.xlsx` → kiểm tra cấu trúc và quét virus → xem trước/xác nhận nhập → bổ sung thông tin thiếu → cấu hình SC → chạy CP-SAT → kiểm tra và duyệt công bố.
-- **Trang cá nhân:** đăng nhập bằng tài khoản admin cấp; server chỉ trả những buổi của người gắn với tài khoản. Áp dụng cho học viên, giảng viên, lab coach và key coach.
-- **Thử ngay:** trong kho dữ liệu trống, bấm **Nạp bộ mẫu** để có dữ liệu hoàn toàn giả lập, chạy solver và tạo tài khoản cá nhân để kiểm tra.
-- **Lưu trữ:** workbook đầu vào, dữ liệu chuẩn hoá, tài khoản băm mật khẩu, phiên bản lịch và nhật ký đều local trong `runtime/` được Git bỏ qua. Không lưu SQL.
-- **Upload an toàn:** Windows tự tìm Microsoft Defender; máy khác dùng ClamAV và `CLAMSCAN_PATH`. Không có/quét lỗi thì chặn upload. Chỉ nhận `.xlsx`, tối đa 10 MB/file và 10 file/lượt, tổng request 32 MB.
-
-Ba file hiện tại có lịch và danh tính nhưng thiếu một phần giờ rảnh, chuyên môn/kỹ năng, đăng ký lớp và giới hạn giờ làm. App sẽ báo thiếu để admin bổ sung, không tự tạo dữ kiện rồi kết luận lịch hợp lệ. Hướng dẫn schema, nhập file và ràng buộc: [docs/scheduling-app.md](docs/scheduling-app.md).
-
-**Trạng thái hackathon:** CP-SAT là bộ tối ưu chạy local, không phải lời gọi LLM. Web gọi llama.cpp qua `codebase/ai.py` khi admin chọn trích xuất. Luồng eval mặc định vẫn dùng model giả. Benchmark hiện có kiểm tra luồng tra lịch/soạn thông báo, chưa phải bằng chứng toàn bộ web đạt. Chưa sửa chuẩn đạt, metric hoặc kết quả chạy.
-
----
-
-## Trích xuất lịch K9 bằng llama.cpp local
-
-Trong giao diện admin, chọn hai workbook lịch giảng dạy và lịch Lab Coach, rồi bấm **Trích xuất bằng AI**. Khai báo trong `.env` ở thư mục gốc:
-
-```dotenv
-LLAMACPPPATH=/opt/llama.cpp/bin/llama-server
-GGUFPath=/opt/models/Qwen3-4B-Instruct-2507-Q4_K_M.gguf
-```
-
-Trên Windows, trỏ `LLAMACPPPATH` đến `llama-server.exe`. Ứng dụng quét hai file trước khi khởi động model, hiển thị tiến độ theo sheet, dừng tiến trình sau khi chạy và cung cấp báo cáo JSON để duyệt.
-
-Chạy từ thư mục gốc repo. Mở llama-server với một model GGUF dạng instruct trong terminal riêng.
-
-```powershell
-llama-server -m "C:\models\your-instruct-model.gguf" --alias local-model --host 127.0.0.1 --port 8080 -c 8192
-```
-
-Trong terminal của repo, chạy:
-
-```powershell
-python -m codebase.scheduler.extract_schedule --out runtime/schedule-extraction-model.json
-python -m codebase.scheduler.extract_schedule --without-model --out runtime/schedule-extraction-k9.json
-```
-
-Hai lệnh tạo báo cáo riêng. Chọn tên mới khi chạy lại để giữ bản đã duyệt. Có thể chỉ định `--teaching`, `--coaches`, `--port` và `--model` nếu dùng file hoặc cấu hình khác. Nếu bật API key cho server, đặt `LLAMA_API_KEY` trong môi trường của client. Khi phản hồi bị cắt, extractor tự chia batch và thử lại. Các ô vẫn bị cắt được ghi vào `model_extraction_issues` trong báo cáo.
-
-Pipeline đọc toàn bộ sheet trong hai workbook, gồm cả Khoá 8 (GĐ2), lịch sử chỉnh sửa, form đăng ký và đổi ca. Dữ liệu chỉ gửi tới địa chỉ loopback sau khi bỏ email và URL. `sheet_coverage` ghi số ô và số lượt gọi model theo sheet. Kết quả gồm `tables` theo schema trong `codebase/scheduler/excel.py`, liên kết coach, và danh sách `readiness` của solver. `model_facts_for_review` lưu loại nguồn, toạ độ ô và trích dẫn nguyên văn. Người duyệt xác nhận diễn giải của model trước khi đưa dữ liệu lịch sử, đăng ký hoặc yêu cầu vào lịch hiện tại.
-
-Bản trích xuất là dữ liệu nháp. Giữ riêng lịch đã phân công và giờ rảnh, chủ đề đã dạy và kỹ năng được xác thực, sức chứa ghi chung và sức chứa từng phòng. Bổ sung đăng ký lớp, giờ rảnh, kỹ năng, giới hạn tải, nhu cầu coach, sức chứa còn thiếu và cấu hình SC trước khi chạy solver. Với buổi có nhiều giảng viên/phòng, xác nhận cách biểu diễn từng nhóm trước khi tạo baseline. Dùng `codebase.scheduler.solver.readiness(report["tables"])` để kiểm tra lại bản đã duyệt, rồi dùng `codebase.scheduler.solver.solve(report["tables"])` khi dữ liệu đã sẵn sàng.
-
-## Tài liệu khung hackathon
-
-Các hướng dẫn về chế độ dòng lệnh giả bên dưới là tài liệu khung ban đầu. Lệnh `python run.py` hiện mở web local như phần trên; `check`, `eval`, `score`, `simulate` giữ nguyên bộ chạy của khung.
+# 4people — Trợ lý đối chiếu lịch và soạn thông báo phòng lab (Track A5)
 
 **Thành viên, lớp, track:** xem [TEAMS.md](TEAMS.md).
 
@@ -107,13 +48,13 @@ Gõ `dir` (Windows) hoặc `ls` (macOS / Linux): thấy `run.py` và `README.md`
 | Việc | Windows (PowerShell) | macOS / Linux |
 |---|---|---|
 | Kiểm Python | `python --version` (không được thì `py --version`) | `python3 --version` |
-| Chạy bản chạy thử (chế độ giả, chưa gọi model) | `python run.py` | `python3 run.py` |
+| Chạy bản thử dòng lệnh (chế độ giả, chưa gọi model) | `python run.py cli` | `python3 run.py cli` |
 | Kiểm bộ câu thử | `python run.py check` | `python3 run.py check` |
 | Tạo file `.env` để nối model | `copy .env.example .env` | `cp .env.example .env` |
 
 - Windows: gõ `python` mà mở Microsoft Store hoặc báo không có lệnh → dùng `py`. Chưa có Python: cài từ python.org, **tick "Add python.exe to PATH"**, mở lại PowerShell.
 - macOS: báo `command not found: python` là bình thường → dùng `python3`.
-- `python run.py` in ra "[câu trả lời giả — chưa nối model] …" là khung chạy đúng. Nối model thật: [docs/connect-model.md](docs/connect-model.md).
+- `python run.py cli` in ra "[câu trả lời giả — chưa nối model] …" là khung chạy đúng. Nối model thật: [docs/connect-model.md](docs/connect-model.md).
 
 Trong README này lệnh viết là `python …`; máy nhóm cần `python3` hay `py` thì gõ thay.
 
@@ -121,7 +62,8 @@ Trong README này lệnh viết là `python …`; máy nhóm cần `python3` hay
 
 | Lệnh | Làm gì |
 |---|---|
-| `python run.py` | Chạy bản chạy thử (gõ đầu vào, nhận kết quả, kèm số lần gọi model / token) |
+| `python run.py` | Chạy ứng dụng web xếp lịch |
+| `python run.py cli` | Chạy bản thử dòng lệnh (gõ đầu vào, nhận kết quả, kèm số lần gọi model / token) |
 | `python run.py check` | Kiểm `eval/benchmark.csv` (6 cột, số câu, `kho` / `tu_choi`, mã `source`, ô trống, dòng mẫu) `eval/metric_spec.yaml` (≥3 metric điền đủ) và `TEAMS.md` (đúng format để BTC quét). Chỉ cảnh báo, không sửa file |
 | `python run.py eval --try` | **Thử nối model:** chạy 3 câu đầu (`--try 5` = 5 câu) → `eval/run-try.csv`. Thấy "Nối model được" là xong. Không tính là một lượt |
 | `python run.py eval` | Chạy cả bộ qua `codebase/agent.py` → `eval/run-1.csv` (lần sau `run-2.csv`…) + `traces/run-1.jsonl`. Mỗi dòng có run ID, model, số lần gọi model / công cụ, token. Model còn giả → chỉ ghi `run-mock.csv`; mọi câu lỗi → `run-error.csv`; Ctrl+C → `run-stopped.csv` — đều **không** được đánh số |
@@ -145,7 +87,7 @@ Nhóm dùng stack khác (Node, Streamlit, notebook…): sửa hàm `run_app()` t
 | `codebase/tools.py` | Công cụ của bài toán, mỗi công cụ một hàm có `@tool` | 2.2, 3.2 |
 | `codebase/ai.py` | `call_model(system, user)` — chỗ duy nhất gọi model. Chưa điền `.env` thì chạy **chế độ giả** | 3.3 |
 
-- **Trước CP2:** để chế độ giả, công cụ trả dữ liệu giả — `python run.py` đi hết luồng là đủ.
+- **Trước CP2:** để chế độ giả, công cụ trả dữ liệu giả — `python run.py cli` đi hết luồng là đủ.
 - **Trước CP3:** nối model thật theo [docs/connect-model.md](docs/connect-model.md), `eval --try` thấy token > 0 rồi mới `eval`.
 - Bộ chạy gửi **nguyên ô `input`** của câu thử vào `answer(text)`. Dữ liệu nền (bài học, thông báo, lịch…) để trong `data/`, đọc qua công cụ.
 
@@ -197,4 +139,4 @@ ____
 
 ## Ứng dụng web xếp lịch
 
-Chạy `python -m codebase.schedule_web` sau khi thiết lập bí mật và mật khẩu quản trị. Xem [hướng dẫn cài đặt, nhập Excel và công bố lịch](docs/schedule-web.md).
+Chạy `python run.py` sau khi thiết lập bí mật và mật khẩu quản trị. Xem [hướng dẫn cài đặt, nhập Excel và công bố lịch](docs/schedule-web.md).

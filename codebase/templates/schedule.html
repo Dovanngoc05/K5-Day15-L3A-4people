@@ -42,12 +42,29 @@
 {% elif page == 'admin' %}
 <section class="hero"><h1>Quản trị lịch học</h1><p>{{ class_count }} buổi đã công bố · {{ student_count }} học viên</p></section>
 <div class="grid admin-grid">
-<section class="panel"><h2>Nhập dữ liệu Excel</h2><p class="muted">Tải ba workbook gốc để tạo bản nháp, hoặc dùng bộ đã bổ sung để kiểm tra và công bố.</p>
+<section class="panel">
+{% if imported %}
+<h2>Dữ liệu xếp lịch</h2>
+<p class="muted">Đã nhập ba tệp gốc. Bổ sung dữ liệu trên web và lưu từng bảng trước khi xếp lịch.</p>
+<p><a href="{{ url_for('edit', sheet='Classes') }}">Mở bảng nhập liệu</a></p>
+<form method="post" class="actions">
+<input type="hidden" name="csrf" value="{{ session.csrf }}">
+<button class="quiet" name="action" value="check">Kiểm tra và xếp thử</button>
+<button name="action" value="publish">Xếp và công bố</button>
+</form>
+<details class="import"><summary>Nhập bộ tệp gốc khác</summary>
+<p class="muted">Thao tác này bắt đầu một bộ dữ liệu làm việc mới. Lịch đã công bố vẫn dùng bộ dữ liệu của lần công bố đó.</p>
+{% else %}
+<h2>Nhập dữ liệu Excel</h2>
+<p class="muted">Tải ba tệp gốc một lần. Sau khi quét và đọc tệp, ứng dụng mở bảng nhập liệu trên web.</p>
+{% endif %}
 <form method="post" enctype="multipart/form-data">
 <input type="hidden" name="csrf" value="{{ session.csrf }}">
 {% for file in files %}<label>{{ file }}<input type="file" name="file{{ loop.index0 }}" accept=".xlsx" required></label>{% endfor %}
-<div class="actions"><button class="quiet" name="action" value="draft">Tải bản nháp Excel</button><button class="quiet" name="action" value="check">Kiểm tra và xếp thử</button><button name="action" value="publish">Xếp và công bố</button></div>
-</form></section>
+<button name="action" value="import">Nhập dữ liệu từ Excel</button>
+</form>
+{% if imported %}</details>{% endif %}
+</section>
 <section class="panel"><h2>Mã truy cập học viên</h2>
 <form method="post"><input type="hidden" name="csrf" value="{{ session.csrf }}">
 <label>Mã học viên<input name="student_id" maxlength="500" required></label><button class="quiet" name="action" value="issue">Lấy mã truy cập</button></form>
@@ -57,6 +74,38 @@
 <section class="panel full"><h2>Lịch đã công bố</h2>
 <form method="get" class="filter"><label>Lọc theo mã học viên hoặc tên nhân sự<input name="person" value="{{ person }}" maxlength="500"></label><button class="quiet">Lọc lịch</button>{% if person %}<a href="{{ url_for('admin') }}">Bỏ lọc</a>{% endif %}</form>
 {{ schedule_table(schedule, true) }}</section>
+{% elif page == 'editor' %}
+<section class="hero"><h1>Dữ liệu xếp lịch</h1><p>{{ workbook_name }}</p></section>
+<section class="panel">
+<div class="actions"><a href="{{ url_for('admin') }}">Về trang quản trị và xếp lịch</a><a href="{{ url_for('download_data') }}">Tải {{ workbook_name }}</a></div>
+<nav class="editor-nav" aria-label="Các bảng dữ liệu">
+{% for key, info in sheets.items() %}<a href="{{ url_for('edit', sheet=key) }}"{% if key == sheet %} aria-current="page"{% endif %}>{{ info[0] }}</a>{% endfor %}
+</nav>
+<h2>{{ sheets[sheet][0] }}</h2>
+<p class="muted">{{ sheets[sheet][1] }}</p>
+{% if editable %}
+<p class="muted">Dùng dấu chấm phẩy để phân cách nhiều giá trị trong một ô. Có thể dán nhiều ô từ Excel vào bảng.</p>
+<form method="post" id="data-editor">
+<input type="hidden" name="csrf" value="{{ session.csrf }}">
+<input type="hidden" name="version" value="{{ version }}">
+<input type="hidden" name="generation" value="{{ generation }}">
+{% endif %}
+<div class="scroll editor-table"><table>
+<thead><tr>{% for column in columns %}<th scope="col">{{ column }}</th>{% endfor %}{% if editable %}<th scope="col">Dòng</th>{% endif %}</tr></thead>
+<tbody>
+{% for row in rows or ([[]] if editable else []) %}
+<tr>{% for column in columns %}
+<td>{% if editable %}<input name="col{{ loop.index0 }}" aria-label="{{ column }}" value="{{ row[loop.index0] if row else '' }}" maxlength="500">{% else %}{{ row[loop.index0] }}{% endif %}</td>
+{% endfor %}{% if editable %}<td><button type="button" class="quiet" data-remove>Xóa</button></td>{% endif %}</tr>
+{% endfor %}
+</tbody></table></div>
+{% if editable %}
+<template id="editor-row"><tr>{% for column in columns %}<td><input name="col{{ loop.index0 }}" aria-label="{{ column }}" maxlength="500"></td>{% endfor %}<td><button type="button" class="quiet" data-remove>Xóa</button></td></tr></template>
+<div class="actions"><button type="button" class="quiet" id="add-row">Thêm dòng</button><button>Lưu bảng</button></div>
+</form>
+<script src="{{ url_for('static', filename='schedule-editor.js') }}" defer></script>
+{% endif %}
+</section>
 {% elif page == 'student' %}
 <section class="hero"><h1>Lịch học của bạn</h1><p>{{ name }} · {{ schedule|length }} buổi học</p></section>
 <section class="panel full">{{ schedule_table(schedule) }}</section>

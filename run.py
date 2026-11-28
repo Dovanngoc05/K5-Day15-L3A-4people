@@ -1,7 +1,8 @@
 """Một lệnh cho mọi việc. Chạy được trên Windows, macOS, Linux với Python 3.10 trở lên (3.8–3.9 vẫn chạy, có nhắc).
-Không cần cài thêm gì, không cần make.
+Cài thư viện cho ứng dụng web bằng python -m pip install -r requirements.txt.
 
-  python run.py                         chạy bản chạy thử (codebase/app.py → codebase/agent.py)
+  python run.py                         chạy ứng dụng web xếp lịch
+  python run.py cli                     chạy bản thử dòng lệnh qua codebase/agent.py
   python run.py check                   kiểm eval/benchmark.csv + eval/metric_spec.yaml
   python run.py eval --try [N]          thử nối model: chạy N câu thử đầu (mặc định 3) → eval/run-try.csv
   python run.py eval                    chạy cả bộ câu thử → eval/run-N.csv + traces/run-N.jsonl
@@ -38,7 +39,8 @@ EVAL = os.path.join("eval", "run_eval.py")
 SIMULATE = os.path.join("cost", "simulate.py")
 
 HELP = """Các lệnh dùng được:
-  python run.py                         chạy bản chạy thử
+  python run.py                         chạy ứng dụng web xếp lịch
+  python run.py cli                     chạy bản thử dòng lệnh
   python run.py check                   kiểm bộ câu thử + metric spec
   python run.py eval --try [N]          thử nối model với N câu đầu (mặc định 3)
   python run.py eval                    chạy cả bộ câu thử → eval/run-N.csv
@@ -82,13 +84,15 @@ def py(*args):
 
 
 def run_app():
-    return py(os.path.join("codebase", "app.py"))
+    return py("-m", "codebase.schedule_web")
 
 
 def main(argv):
     if not argv:
         return run_app()
     cmd, rest = argv[0], argv[1:]
+    if cmd == "cli" and not rest:
+        return py(os.path.join("codebase", "app.py"))
     if cmd == "check":
         if rest:
             print("check không nhận thêm tham số: " + " ".join(rest) + "\n" + HELP)

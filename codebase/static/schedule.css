@@ -33,3 +33,13 @@ small { display: block; }
 @media (max-width: 700px) { .grid, .admin-grid { grid-template-columns: 1fr; } .brand .muted { display: none; } }
 .filter { display: flex; flex-wrap: wrap; align-items: end; gap: .7rem; margin: 0 0 1rem; }
 .filter label { margin: 0; flex: 0 1 320px; }
+.import { margin-top: 1rem; }
+.import summary { cursor: pointer; }
+.editor-nav { display: flex; flex-wrap: wrap; gap: .45rem; margin: 1rem 0 1.5rem; }
+.editor-nav a { padding: .35rem .65rem; border: 1px solid var(--line); border-radius: 8px; color: var(--green); text-decoration: none; }
+.editor-nav a[aria-current] { background: var(--green); color: white; }
+.editor-table { max-height: 58vh; margin-bottom: 1rem; border: 1px solid var(--line); }
+.editor-table th { position: sticky; top: 0; }
+.editor-table td, .editor-table th { padding: .35rem; }
+.editor-table input { min-width: 9rem; margin: 0; }
+.editor-table input[aria-label="subject"], .editor-table input[aria-label="skills"], .editor-table input[aria-label="full_name"] { min-width: 17rem; }

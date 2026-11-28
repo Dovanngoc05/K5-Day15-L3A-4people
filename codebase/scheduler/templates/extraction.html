@@ -10,6 +10,15 @@
     {% if job.status == 'running' %}<span class="extraction-spinner" aria-hidden="true"></span>{% endif %}
     {{ job.message }}
   </p>
+  <div class="metrics">
+    <article><span>Tốc độ sinh</span><strong>{% if job.tokens_per_second is not none %}{{ '%.1f'|format(job.tokens_per_second) }}{% else %}—{% endif %}</strong><small>token/s</small></article>
+    <article><span>Token đầu vào</span><strong>{{ job.prompt_tokens }}</strong></article>
+    <article><span>Token đầu ra</span><strong>{{ job.generated_tokens }}</strong></article>
+    <article><span>Tổng token toàn lượt</span><strong>{{ job.prompt_tokens + job.generated_tokens }}</strong></article>
+  </div>
+  {% if job.status == 'running' and job.sheet %}
+  <p>Token của sheet {{ job.sheet }}: <strong>{{ job.prompt_tokens + job.generated_tokens - job.sheet_start_tokens }}</strong></p>
+  {% endif %}
   {% if job.status == 'done' %}
   <p>{{ job.fact_count }} phát hiện từ AI đang chờ duyệt.</p>
   {% if job.issue_count %}

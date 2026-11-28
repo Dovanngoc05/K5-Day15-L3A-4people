@@ -4,6 +4,7 @@ from collections import defaultdict
 from datetime import datetime
 from io import BytesIO
 import json
+from itertools import groupby
 from pathlib import Path
 import re
 from urllib.error import URLError
@@ -91,7 +92,7 @@ def validate_facts(facts, cells):
     return accepted, issues
 
 
-def model_facts(cells, port, model, timeout, *, file, sheet, context):
+def model_facts(cells, port, model, timeout, *, file, sheet, context, stats=None):
     """Extract and validate evidence from one sheet batch."""
     system = (
         "Extract scheduling evidence from Vietnamese training spreadsheet cells. "
@@ -101,6 +102,7 @@ def model_facts(cells, port, model, timeout, *, file, sheet, context):
         "Include the person, role, date, class, session, room or capacity in the "
         "interpretation where explicitly supported. Return only explicit evidence. "
         "Use a short verbatim quote and one concise interpretation per distinct fact. "
+        "Report each fact once. Skip column headings and totals that repeat the underlying entries. "
         "An assignment to a topic is teaching history, not a verified skill. "
         "A schedule assignment is not general availability. Do not treat approximate "
         "class size, aggregate capacity, or staffing ratios as per-room capacity. "
@@ -110,8 +112,11 @@ def model_facts(cells, port, model, timeout, *, file, sheet, context):
         "assignments from historical schedules, copies, or forms. "
         "Use an empty facts array if there are none."
     )
-    user = json.dumps({"file": file, "sheet": sheet, "context": context, "cells": cells}, ensure_ascii=False)
-    result = call_model(system, user, llama_port=port, model=model, timeout=timeout, schema=FACT_SCHEMA)
+    user = json.dumps(
+        {"file": file, "sheet": sheet, "context": context, "cells": cells},
+        ensure_ascii=False, separators=(",", ":"),
+    )
+    result = call_model(system, user, llama_port=port, model=model, timeout=timeout, schema=FACT_SCHEMA, stats=stats)
     facts = json.loads(result["text"])["facts"]
     if not isinstance(facts, list):
         raise ValueError("llama-server returned an invalid facts array.")
@@ -189,24 +194,49 @@ def coach_schedule(sheet, file):
 
 
 def source_cells(sheet):
-    """Read the full sheet while removing contact addresses and link targets."""
+    """Emit populated cells only, with original Excel coordinates."""
+    omit_duplicate_registrants = sheet.title == "Tong_hop" and [
+        text(sheet.cell(1, col).value) for col in range(5, 9)
+    ] == [
+        "Giảng viên phụ trách", "Lab Coach phụ trách",
+        "Người đăng ký khác / chưa xác định vai trò", "Tất cả người đăng ký",
+    ]
     for row in sheet.iter_rows():
-        for cell in row:
-            value = CONTACT.sub("", text(cell.value)).strip()
-            if value:
-                yield cell.coordinate, value
+        values = {
+            cell.coordinate: value for cell in row
+            if (value := CONTACT.sub("", text(cell.value)).strip())
+        }
+        if not values:
+            continue
+        row_number = row[0].row
+        if omit_duplicate_registrants and row_number > 1:
+            combined = f"H{row_number}"
+            if combined in values:
+                named = {
+                    name.strip() for col in "EFG"
+                    for name in values.get(f"{col}{row_number}", "").split(";") if name.strip()
+                }
+                if all(name.strip() in named for name in values[combined].split(";") if name.strip()):
+                    del values[combined]
+        yield from values.items()
 
 
 def batches(cells, limit):
     group = {}
     length = 0
-    for key, value in cells:
-        size = len(json.dumps({key: value}, ensure_ascii=False))
+    for _, row_items in groupby(cells, key=lambda item: item[0].lstrip("ABCDEFGHIJKLMNOPQRSTUVWXYZ")):
+        row = dict(row_items)
+        size = len(json.dumps(row, ensure_ascii=False, separators=(",", ":")))
         if group and length + size > limit:
             yield group
             group = {}
             length = 0
-        group[key] = value
+        if size > limit and len(row) > 1:
+            left, right = split_truncated_batch(row)
+            yield from batches(left.items(), limit)
+            yield from batches(right.items(), limit)
+            continue
+        group.update(row)
         length += size
     if group:
         yield group
@@ -231,14 +261,16 @@ def split_truncated_batch(cells):
     return {cell: value[:split_at]}, {cell: value[split_at:]}
 
 
-def collect_sheet_facts(report, coverage, cells, port, model, timeout, batch_chars):
+def collect_sheet_facts(report, coverage, cells, port, model, timeout, batch_chars, stats=None):
     file, sheet, context = (coverage[key] for key in ("file", "sheet", "context"))
     for batch in batches(cells.items(), batch_chars):
         pending = [batch]
         while pending:
             current = pending.pop()
             try:
-                facts, issues = model_facts(current, port, model, timeout, file=file, sheet=sheet, context=context)
+                facts, issues = model_facts(
+                    current, port, model, timeout, file=file, sheet=sheet, context=context, stats=stats
+                )
             except ModelResponseTruncated:
                 coverage["truncated_batches"] += 1
                 parts = split_truncated_batch(current)
@@ -351,13 +383,13 @@ def extract(teaching, coaches):
 
 
 def run_extraction(teaching, coaches, output_path, *, port=8080, model="local-model",
-                   timeout=600, batch_chars=15000, without_model=False, progress=None):
+                   timeout=600, batch_chars=15000, without_model=False, progress=None, stats=None):
     report, sheets = extract(teaching, coaches)
     if not without_model:
         for coverage, (_, sheet, cells) in zip(report["sheet_coverage"], sheets):
             if progress:
                 progress(sheet)
-            collect_sheet_facts(report, coverage, cells, port, model, timeout, batch_chars)
+            collect_sheet_facts(report, coverage, cells, port, model, timeout, batch_chars, stats)
     encoded = json.dumps(report, ensure_ascii=False, indent=2)
     output_path.parent.mkdir(parents=True, exist_ok=True)
     with output_path.open("x", encoding="utf-8") as output:

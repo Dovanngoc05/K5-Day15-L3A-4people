@@ -27,12 +27,36 @@ class ExtractionJob:
         with self.lock:
             self.state.update(values)
 
+    def update_tokens(self, prompt, generated, rate, finished):
+        with self.lock:
+            state = self.state
+            if finished:
+                state["completed_prompt"] += prompt
+                state["completed_generated"] += generated
+                prompt = generated = 0
+            state.update(
+                prompt_tokens=state["completed_prompt"] + prompt,
+                generated_tokens=state["completed_generated"] + generated,
+                tokens_per_second=rate,
+            )
+
+    def start_sheet(self, sheet):
+        with self.lock:
+            self.state.update(
+                message="Đang đọc sheet " + sheet, sheet=sheet,
+                sheet_start_tokens=self.state["completed_prompt"] + self.state["completed_generated"],
+            )
+
     def start(self, owner, files, executable, model):
         with self.lock:
             if self.state and self.state["status"] == "running":
                 raise ValueError("Đang có một lượt trích xuất AI.")
             ident = secrets.token_hex(12)
-            self.state = dict(id=ident, owner=owner, status="running", message="Đang quét hai workbook.")
+            self.state = dict(
+                id=ident, owner=owner, status="running", message="Đang quét hai workbook.",
+                completed_prompt=0, completed_generated=0, prompt_tokens=0,
+                generated_tokens=0, tokens_per_second=None,
+            )
             worker = Thread(target=self.run, args=(ident, files, executable, model), daemon=True)
             try:
                 worker.start()
@@ -69,7 +93,8 @@ class ExtractionJob:
                 with llama_server(executable, model) as port:
                     report = run_extraction(
                         sources["teaching"], sources["coaches"], self.report_path(ident), port=port,
-                        progress=lambda sheet: self.update(message="Đang đọc sheet " + sheet),
+                        progress=self.start_sheet,
+                        stats=self.update_tokens,
                     )
             issue_count = len(report["model_extraction_issues"])
             message = (

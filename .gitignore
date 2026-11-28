@@ -42,3 +42,6 @@ data-btc/
 # Nextcloud conflict copies and Excel lock files
 * (conflicted copy *)*
 ~$*.xlsx
+/.vs/K5-Day15-L3A-4people/FileContentIndex/3c20e586-92ef-4131-8630-29ee2962f851.vsidx
+/.vs/K5-Day15-L3A-4people/FileContentIndex
+/.vs

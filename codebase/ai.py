@@ -109,7 +109,7 @@ def llama_server(executable, model):
     port = _free_port()
     command = [
         str(executable), "-m", str(model), "--alias", "local-model",
-        "--host", "127.0.0.1", "--port", str(port), "-ngl", "0",
+        "--host", "127.0.0.1", "--port", str(port), "-ngl", "99",
         "-t", "4", "-tb", "4", "-np", "1", "-c", "8192",
     ]
     try:
@@ -140,7 +140,45 @@ class ModelResponseTruncated(ValueError):
     """The model reached its generation limit before completing the response."""
 
 
-def _llama_completion(system, user, port, model, timeout, schema):
+def _read_llama_stream(response, stats):
+    content = []
+    result = {}
+    choice = {}
+    live_prompt = 0
+    for line in response:
+        if not line.startswith(b"data:"):
+            continue
+        payload = line[5:].strip()
+        if payload == b"[DONE]":
+            break
+        chunk = json.loads(payload)
+        if "error" in chunk:
+            raise ValueError("llama-server báo lỗi khi tạo phản hồi.")
+        if chunk.get("model"):
+            result["model"] = chunk["model"]
+        if chunk.get("usage"):
+            result["usage"] = chunk["usage"]
+        if options := chunk.get("choices"):
+            part = options[0]
+            if text := part.get("delta", {}).get("content"):
+                content.append(text)
+            if part.get("finish_reason"):
+                choice["finish_reason"] = part["finish_reason"]
+        if prompt := chunk.get("prompt_progress"):
+            live_prompt = prompt.get("total", live_prompt)
+        if timings := chunk.get("timings"):
+            result["timings"] = timings
+        if prompt or timings:
+            current = result.get("timings", {})
+            stats(live_prompt, current.get("predicted_n", 0), current.get("predicted_per_second"), False)
+    if "finish_reason" not in choice:
+        raise ValueError("llama-server ngắt luồng trước khi hoàn tất phản hồi.")
+    choice["message"] = {"content": "".join(content)}
+    result["choices"] = [choice]
+    return result
+
+
+def _llama_completion(system, user, port, model, timeout, schema, stats=None):
     body = {
         "model": model,
         "temperature": 0,
@@ -149,6 +187,10 @@ def _llama_completion(system, user, port, model, timeout, schema):
     }
     if schema is not None:
         body["response_format"] = {"type": "json_object", "schema": schema}
+    if stats is not None:
+        body.update(stream=True, stream_options={"include_usage": True},
+                    timings_per_token=True, return_progress=True)
+        stats(0, 0, None, False)
     headers = {"Content-Type": "application/json"}
     if api_key := os.environ.get("LLAMA_API_KEY"):
         headers["Authorization"] = "Bearer " + api_key
@@ -158,11 +200,19 @@ def _llama_completion(system, user, port, model, timeout, schema):
     )
     opener = build_opener(ProxyHandler({}), _LocalOnly())
     with opener.open(request, timeout=timeout) as response:
-        result = json.load(response)
+        if stats is not None and response.headers.get_content_type() == "text/event-stream":
+            result = _read_llama_stream(response, stats)
+        else:
+            result = json.load(response)
     choice = result["choices"][0]
+    usage = result.get("usage")
+    if stats is not None and usage is not None:
+        stats(usage["prompt_tokens"], usage["completion_tokens"],
+              result.get("timings", {}).get("predicted_per_second"), True)
     if choice.get("finish_reason") == "length":
         raise ModelResponseTruncated("llama-server reached its response token limit.")
-    usage = result["usage"]
+    if usage is None:
+        raise ValueError("llama-server không trả số token cho phản hồi.")
     return {
         "text": choice["message"]["content"],
         "model": result.get("model") or model,
@@ -173,12 +223,12 @@ def _llama_completion(system, user, port, model, timeout, schema):
 
 
 @model_call
-def call_model(system: str, user: str, *, llama_port=None, model=None, timeout=600, schema=None) -> dict:
+def call_model(system: str, user: str, *, llama_port=None, model=None, timeout=600, schema=None, stats=None) -> dict:
     if llama_port is not None:
-        return _llama_completion(system, user, llama_port, model or "local-model", timeout, schema)
+        return _llama_completion(system, user, llama_port, model or "local-model", timeout, schema, stats)
     if MODEL_PROVIDER == "llamacpp":
         port = int(os.environ.get("LLAMA_PORT", "8080"))
-        return _llama_completion(system, user, port, model or MODEL_NAME or "local-model", timeout, schema)
+        return _llama_completion(system, user, port, model or MODEL_NAME or "local-model", timeout, schema, stats)
     if MODEL_PROVIDER == "fake":
         last = (user.strip().splitlines() or [""])[-1]
         return {"text": "[câu trả lời giả — chưa nối model] " + last[:60], "model": "fake", "tokens_in": 0, "tokens_out": 0}

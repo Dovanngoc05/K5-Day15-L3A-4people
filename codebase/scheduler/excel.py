@@ -8,7 +8,7 @@ import tempfile
 from openpyxl import Workbook, load_workbook
 
 SCHEMA = {
-    "People": ["person_id", "name", "role", "subjects", "skills", "max_minutes_day", "max_minutes_week"],
+    "People": ["person_id", "name", "role", "subjects", "skills", "max_minutes_day", "max_minutes_week", "student_id"],
     "Sessions": ["session_id", "class_id", "subject", "duration_minutes", "required_skill", "assistant_count", "key_coach_required", "locked", "baseline_slot", "baseline_teacher", "baseline_assistants", "baseline_key_coach", "baseline_room", "allowed_slots", "allowed_rooms"],
     "Slots": ["slot_id", "date", "start", "end"],
     "Rooms": ["room_id", "capacity"],
@@ -17,7 +17,7 @@ SCHEMA = {
     "Weights": ["constraint_id", "weight"],
 }
 DEFAULT_WEIGHTS = dict(zip([f"SC-{i:02}" for i in range(1, 8)], [100, 30, 20, 20, 15, 10, 5]))
-OPTIONAL_COLUMNS = {"Sessions": {"allowed_slots", "allowed_rooms"}}
+OPTIONAL_COLUMNS = {"People": {"student_id"}, "Sessions": {"allowed_slots", "allowed_rooms"}}
 
 
 def text(value):
@@ -58,11 +58,13 @@ def workbook_bytes(tables, schema=None):
     return output.getvalue()
 
 
-def read_tables(source):
-    book = load_workbook(source, data_only=False, keep_links=False)
+def read_tables(source, *, sheets=None):
+    book = load_workbook(source, data_only=False, keep_links=False, read_only=sheets is not None)
     try:
         result = {}
         for sheet in book:
+            if sheets is not None and sheet.title not in sheets:
+                continue
             if sheet.max_row * sheet.max_column > 500_000:
                 raise ValueError("Sheet quá lớn: " + sheet.title)
             iterator = sheet.iter_rows()

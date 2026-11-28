@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tra cứu thời khóa biểu AI20K</title>
+<style>
+:root{color-scheme:light;--ink:#17264a;--sub:#4c5d77;--line:#d6e1f1;--accent:#174ea6;--paper:#f0f5fc}
+*{box-sizing:border-box}body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.5 system-ui,sans-serif}
+main{width:min(930px,calc(100% - 32px));margin:48px auto 64px}
+header{padding:0 0 24px;border-bottom:1px solid #bccce3;margin-bottom:24px}
+h1{font-size:clamp(2rem,6vw,3.5rem);line-height:1.04;letter-spacing:-.045em;margin:0 0 12px}
+header p,.muted{color:var(--sub);margin:0}header p{font-weight:600}
+.panel{background:white;border:1px solid var(--line);border-radius:16px;padding:clamp(16px,3vw,26px)}
+.search{display:grid;grid-template-columns:minmax(0,2fr) minmax(100px,1fr);gap:14px}
+label{display:block;font-weight:650}input,select{display:block;width:100%;margin-top:5px;min-height:44px;padding:8px 11px;border:1px solid #a7bad6;border-radius:8px;background:white;color:inherit;font:inherit}
+:focus-visible{outline:3px solid #3775cd;outline-offset:2px}
+.notice{padding:12px 15px;color:#674211;border:1px solid #f0d6a4;border-radius:9px;background:#fff7e6;margin:18px 0}
+#matches{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.choice{border:1px solid #b0c6e9;background:#edf4ff;color:#163d79;padding:7px 12px;border-radius:7px;font:inherit;cursor:pointer}
+#status{min-height:24px;margin:16px 0 8px;color:var(--sub)}.day{margin:24px 0 8px;font-size:1.05rem}
+.session{display:grid;grid-template-columns:112px 1fr;gap:14px;background:white;border:1px solid var(--line);border-radius:11px;padding:13px 15px;margin-bottom:8px}
+.time{font-variant-numeric:tabular-nums;color:var(--accent);font-weight:700}.subject{margin:1px 0 3px;font-size:1rem}.meta{font-size:.88rem;color:var(--sub);margin:0}
+footer{color:var(--sub);font-size:.84rem;margin-top:25px}
+@media(max-width:520px){main{margin-top:26px}.search{grid-template-columns:1fr}.session{grid-template-columns:1fr;gap:2px}}
+</style>
+</head>
+<body><main>
+<header><h1>Thời khóa biểu AI20K</h1><p>Bản nháp {{ ident[:8] }} · Giờ Việt Nam</p></header>
+<section class="panel" aria-label="Tra cứu lịch">
+<div class="search"><label>Tìm {{ audience_label }}<input id="query" type="search" placeholder="{{ placeholder }}" autocomplete="off"></label>
+<label>Lọc theo lớp<select id="group"><option value="">Tất cả lớp</option>{% for group in classes %}<option>{{ group }}</option>{% endfor %}</select></label></div>
+<div id="matches" aria-label="Kết quả tìm kiếm"></div>
+</section>
+<p class="notice">{% if demo %}Lịch demo CP-SAT dùng phân lớp và khung giờ giả lập. {% else %}Lịch nháp CP-SAT. {% endif %}Tệp chứa tên và mã {{ audience_label }}. Chỉ chia sẻ trong phạm vi được phép.</p>
+<p id="status" role="status"></p>
+<section id="results" aria-label="Kết quả thời khóa biểu"></section>
+
+</main>
+<script type="application/json" id="data">{{ timetable|tojson }}</script>
+<script>
+const {roster,schedule}=JSON.parse(document.getElementById('data').textContent);
+const audienceLabel={{ audience_label|tojson }};
+const get=id=>document.getElementById(id);
+const query=get('query'),group=get('group'),matches=get('matches'),results=get('results'),status=get('status');
+const fold=s=>s.toLowerCase().normalize('NFD').replace(/\p{M}/gu,'').replace(/đ/g,'d').trim().replace(/\s+/g,' ');
+const index=roster.map(row=>({row,keys:[row.id,row.student_id,row.name].map(fold)}));
+const create=(tag,value,style)=>{const node=document.createElement(tag);node.textContent=value;if(style)node.className=style;return node};
+const dates=new Intl.DateTimeFormat('vi-VN',{weekday:'long',day:'2-digit',month:'2-digit',year:'numeric',timeZone:'UTC'});
+let selected=null;
+function render(){
+  const term=fold(query.value);
+  matches.replaceChildren();results.replaceChildren();
+  const filtered=index.filter(item=>!group.value||item.row.classes.includes(group.value));
+  let learner=selected;
+  if(term&&!learner){
+    const exact=filtered.filter(item=>item.keys.includes(term));
+    const options=exact.length?exact:filtered.filter(item=>item.keys.some(key=>key.includes(term)));
+    if(options.length===1) learner=options[0].row;
+    else{
+      status.textContent=options.length?(options.length>12?'Có nhiều kết quả. Nhập thêm ký tự hoặc chọn trong 12 kết quả đầu.':'Chọn '+audienceLabel+' để xem lịch.'):'Không tìm thấy '+audienceLabel+' phù hợp.';
+      for(const {row} of options.slice(0,12)){
+        const button=create('button',[row.name,row.id,row.student_id,row.classes.join(', ')].filter(Boolean).join(' · '),'choice');
+        button.type='button';
+        button.addEventListener('click',()=>{selected=row;render()});
+        matches.append(button);
+      }
+      return;
+    }
+  }
+  const cls=group.value;
+  const assigned=learner && new Set(learner.sessions);
+  const rows=schedule.filter(row=>assigned?assigned.has(row.session_id):!cls||row.class_id===cls);
+  status.textContent=(learner?learner.name+' · '+learner.id+' · ':cls?cls+' · ':'')+rows.length+' buổi học';
+  let previous='';
+  for(const row of rows){
+    if(row.date!==previous){
+      results.append(create('h2',dates.format(new Date(row.date+'T00:00:00Z')),'day'));
+      previous=row.date;
+    }
+    const card=document.createElement('article');card.className='session';
+    card.append(create('div',row.start+'–'+row.end,'time'));
+    const details=document.createElement('div');
+    details.append(create('p',row.class_id+' · '+row.session_id,'meta'),create('h3',row.subject,'subject'),
+      create('p',row.room_id?'Phòng '+row.room_id:'Phòng chờ xác nhận','meta'));
+    card.append(details);results.append(card);
+  }
+}
+query.addEventListener('input',()=>{selected=null;render()});
+group.addEventListener('change',()=>{selected=null;render()});
+render();
+</script>
+</body></html>

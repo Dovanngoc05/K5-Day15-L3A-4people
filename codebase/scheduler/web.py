@@ -1,6 +1,7 @@
 """Flask UI; identities and all data are stored in local Excel workbooks."""
+from collections import defaultdict
 from datetime import timedelta
-from functools import wraps
+from functools import lru_cache, wraps
 from io import BytesIO
 from pathlib import Path
 import hashlib
@@ -11,13 +12,14 @@ import secrets
 import time
 
 from flask import Flask, abort, flash, g, redirect, render_template, request, send_file, session, url_for
+from filelock import Timeout
 from werkzeug.security import check_password_hash, generate_password_hash
 
 from .demo import demo_data
 from .excel import SCHEMA, atomic_write, empty_data, read_tables, text, workbook_bytes
 from ..ai import llama_model_paths
 from .extraction_job import ExtractionJob
-from .importer import combine_import, import_workbook
+from .importer import LAB_ROOM_CAPACITIES, SOURCE_DATA_DIR, combine_import, fill_lab_room_capacities, import_workbook
 from .security import inspect_xlsx, scan_payload, scanner_command
 from .solver import readiness, solve
 from .store import Store, stamp
@@ -36,10 +38,17 @@ def create_app(root=None):
         except FileExistsError:
             pass
     app.config.update(SECRET_KEY=secret.read_text(encoding="ascii"), MAX_CONTENT_LENGTH=32*1024*1024,
+        SESSION_COOKIE_NAME="a5_session_"+hashlib.sha256(os.fsencode(os.path.normcase(storage.root.resolve()))).hexdigest()[:16],
         MAX_FORM_MEMORY_SIZE=100_000, MAX_FORM_PARTS=40, SESSION_COOKIE_HTTPONLY=True,
         SESSION_COOKIE_SAMESITE="Strict", SESSION_COOKIE_SECURE=os.environ.get("A5_HTTPS")=="1",
         PERMANENT_SESSION_LIFETIME=timedelta(hours=2), STORE=storage)
     failures={}
+
+    @lru_cache(maxsize=1)
+    def dashboard_data(snapshot):
+        data=read_tables(BytesIO(snapshot))
+        problems=readiness(data)
+        return {name:data[name] for name in ("People","Sessions","Rooms","Weights")}, problems[:100], len(problems)
 
     def current():
         uid=session.get("uid")
@@ -71,7 +80,7 @@ def create_app(root=None):
 
     @app.after_request
     def headers(response):
-        response.headers["Content-Security-Policy"]="default-src 'self'; style-src 'self'; img-src 'self' data:; script-src 'none'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
+        response.headers["Content-Security-Policy"]="default-src 'self'; style-src 'self'; img-src 'self' data:; script-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
         response.headers["X-Content-Type-Options"]="nosniff"
         response.headers["Referrer-Policy"]="no-referrer"
         response.headers["Cache-Control"]="no-store"
@@ -88,6 +97,10 @@ def create_app(root=None):
     @app.errorhandler(413)
     def error(exc):
         return render_template("error.html",message=exc.description,code=exc.code),exc.code
+
+    @app.errorhandler(Timeout)
+    def storage_busy(exc):
+        return render_template("error.html",message="Kho dữ liệu đang bận. Vui lòng thử lại sau.",code=503),503,{"Retry-After":"5"}
 
     @app.route("/")
     def index():
@@ -127,19 +140,20 @@ def create_app(root=None):
     @app.get("/admin")
     @require("admin")
     def admin():
-        with storage.lock:
-            data=storage.data()
-            problems=readiness(data)
-            state=storage.state()
-            published=storage.published_id()
-            revisions=[]
-            for p in sorted((storage.root/"versions").glob("*.xlsx"),key=lambda p:p.stat().st_mtime,reverse=True) if (storage.root/"versions").exists() else []:
-                ver=storage.version(p.stem)
-                meta={r["key"]:r["value"] for r in ver["Meta"]}
-                revisions.append(meta)
+        # Writers replace workbooks atomically. Read a complete file before parsing it
+        # so dashboard rendering never holds the write lock or a workbook handle.
+        data, problems, problem_count=dashboard_data((storage.root/"dataset.xlsx").read_bytes())
+        state=storage.state()
+        published=next((r["value"] for r in state.get("Meta",[]) if r["key"]=="published"),"")
+        versions=sorted((storage.root/"versions").glob("*.xlsx"),key=lambda p:p.stat().st_mtime,reverse=True)
+        revisions=[]
+        for path in versions[:20]:
+            meta=read_tables(path,sheets={"Meta"}).get("Meta",[])
+            if meta:
+                revisions.append({r["key"]:r["value"] for r in meta})
         job=extraction.snapshot()
-        return render_template("admin.html",data=data,problems=problems[:100],problem_count=len(problems),
-            scanner=scanner_command()[0],revisions=revisions[:20],published=published,
+        return render_template("admin.html",data=data,problems=problems,problem_count=problem_count,
+            scanner=scanner_command()[0],revisions=revisions,published=published,
             audit=list(reversed(state.get("Audit",[])))[:15],accounts=state.get("Accounts",[]),
             extraction_job=job if job and job["owner"]==g.user["username"] else None)
 
@@ -234,6 +248,16 @@ def create_app(root=None):
                 before=storage.fingerprint()
                 current_data=storage.data()
                 result=combine_import(current_data,imports)
+                demo_slots={row["slot_id"] for row in result["Slots"]}
+                if (result["Slots"]!=current_data["Slots"] or result["Availability"]!=current_data["Availability"]) and any(
+                    row["slot_id"].startswith("DEMO-") and row["slot_id"] not in demo_slots
+                    for row in result["Availability"]
+                ):
+                    raise ValueError("Giờ rảnh demo không khớp khung giờ. Hãy nhập cùng nhau các bảng Sessions, Slots và Availability của cùng một lịch demo.")
+                room_changes=fill_lab_room_capacities(result) if result["Rooms"] else {}
+                if room_changes:
+                    values=", ".join(f"{rid}={capacity}" for rid,capacity in sorted(room_changes.items()))
+                    notes.append(f"{LAB_ROOM_CAPACITIES.name}: bổ sung sức chứa phòng ({values}).")
                 profiles=fill_report_profiles(storage.root / REPORT_NAME,result)
                 if profiles:
                     notes.append(f"{REPORT_NAME}: bổ sung thông tin còn thiếu cho {len(profiles)} hồ sơ giảng dạy theo mã người.")
@@ -348,6 +372,56 @@ def create_app(root=None):
         old={r["session_id"]:r for r in (published or {}).get("Schedule",[])}
         changed=[r["session_id"] for r in tables["Schedule"] if old.get(r["session_id"])!=r]
         return render_template("version.html",tables=tables,meta=meta,changed=changed,ident=ident)
+
+    @app.get("/admin/versions/<ident>/learner-timetable",defaults={"audience":"learner"})
+    @app.get("/admin/versions/<ident>/teacher-timetable",defaults={"audience":"teacher"})
+    @app.get("/admin/versions/<ident>/coach-timetable",defaults={"audience":"coach"})
+    @require("admin")
+    def download_timetable(ident,audience):
+        if not re.fullmatch(r"[0-9a-f]{24}",ident):
+            abort(404)
+        path=storage.root/"versions"/(ident+".xlsx")
+        if not path.is_file():
+            abort(404)
+        tables=read_tables(path,sheets={"Schedule","Attendees","People","Enrollments"})
+        audiences={
+            "learner":({"student"},"học viên","Mã học viên, mã sinh viên hoặc họ tên"),
+            "teacher":({"teacher"},"giảng viên","Mã giảng viên hoặc họ tên"),
+            "coach":({"assistant","key_coach"},"lab coach","Mã lab coach hoặc họ tên"),
+        }
+        roles,label,placeholder=audiences[audience]
+        schedule=sorted(tables["Schedule"],key=lambda row:(row["date"],row["start"],row["session_id"]))
+        session_classes={row["session_id"]:row["class_id"] for row in schedule}
+        classes=defaultdict(set)
+        for row in tables["Enrollments"]:
+            classes[row["person_id"]].add(row["class_id"])
+        sessions=defaultdict(set)
+        for row in tables["Attendees"]:
+            if row["role"] in roles:
+                pid=row["person_id"]
+                sid=row["session_id"]
+                sessions[pid].add(sid)
+                if sid in session_classes:
+                    classes[pid].add(session_classes[sid])
+        people=[p for p in tables["People"] if p["role"] in roles and p["person_id"] in sessions]
+        student_ids={}
+        if audience=="learner" and any(not p.get("student_id") for p in people):
+            source=SOURCE_DATA_DIR/"learners.xlsx"
+            if source.is_file():
+                roster_data,_=import_workbook(source.read_bytes())
+                student_ids={p["person_id"]:p.get("student_id","") for p in roster_data.get("People",[])
+                             if p["role"]=="student"}
+        roster=[
+            dict(id=p["person_id"],student_id=p.get("student_id") or student_ids.get(p["person_id"],""),
+                 name=p["name"],classes=sorted(classes[p["person_id"]]),
+                 sessions=sorted(sessions[p["person_id"]])) for p in people
+        ]
+        html=render_template("learner_timetable.html",timetable=dict(roster=roster,schedule=schedule),
+                             classes=sorted({row["class_id"] for row in schedule}),ident=ident,
+                             demo=any(row["slot_id"].startswith("DEMO-") for row in schedule),
+                             audience_label=label,placeholder=placeholder)
+        return send_file(BytesIO(html.encode("utf-8")),as_attachment=True,
+                         download_name=f"{audience}-timetable-{ident[:8]}.html",mimetype="text/html")
 
     @app.post("/admin/versions/<ident>/publish")
     @require("admin")

@@ -12,6 +12,7 @@ import time
 
 from flask import Flask, abort, flash, g, redirect, render_template, request, send_file, session, url_for
 from werkzeug.security import check_password_hash, generate_password_hash
+from werkzeug.local import LocalProxy
 
 from .demo import demo_data
 from .excel import SCHEMA, atomic_write, empty_data, read_tables, text, workbook_bytes
@@ -35,13 +36,42 @@ def create_app(root=None):
         MAX_FORM_MEMORY_SIZE=100_000, MAX_FORM_PARTS=40, SESSION_COOKIE_HTTPONLY=True,
         SESSION_COOKIE_SAMESITE="Strict", SESSION_COOKIE_SECURE=os.environ.get("A5_HTTPS")=="1",
         PERMANENT_SESSION_LIFETIME=timedelta(hours=2), STORE=storage)
+    home_storage=storage
+    workspace_session_key="admin_workspace_"+hashlib.sha256(str(home_storage.root.resolve()).encode()).hexdigest()[:12]
+    known_workspaces={"":home_storage}
+    storage=LocalProxy(lambda:g.store)
     failures={}
+
+    def resolve_workspace(name):
+        if name=="":
+            return home_storage
+        if name=="prepared":
+            path=home_storage.root/"demo-ready"
+        elif re.fullmatch(r"[0-9a-f]{24}",name):
+            path=home_storage.root/"workspaces"/name
+        else:
+            raise ValueError("Kho dữ liệu không hợp lệ.")
+        if not (path/"dataset.xlsx").is_file() or not (path/"state.xlsx").is_file():
+            raise ValueError("Kho dữ liệu chưa tồn tại.")
+        if name not in known_workspaces:
+            known_workspaces[name]=Store(path)
+        return known_workspaces[name]
+
+    def activate_workspace(name,actor):
+        resolve_workspace(name)
+        with home_storage.lock:
+            state=home_storage.state()
+            state["Meta"]=[r for r in state.get("Meta",[]) if r["key"]!="active_workspace"]
+            state["Meta"].append(dict(key="active_workspace",value=name))
+            home_storage.audit(state,actor,"workspace_selected",name or "original")
+            atomic_write(home_storage.root/"state.xlsx",state)
+        session[workspace_session_key]=name
 
     def current():
         uid=session.get("uid")
         if not uid:
             return None
-        return next((a for a in storage.state().get("Accounts",[]) if a.get("username")==uid),None)
+        return next((a for a in home_storage.state().get("Accounts",[]) if a.get("username")==uid),None)
 
     def require(role=None):
         def decorator(fn):
@@ -58,6 +88,12 @@ def create_app(root=None):
     @app.before_request
     def protect():
         g.user=current()
+        key="active_workspace" if g.user and g.user.get("role")=="admin" else "published_workspace"
+        name=next((r["value"] for r in home_storage.state().get("Meta",[]) if r["key"]==key),"")
+        if key=="active_workspace":
+            name=session.setdefault(workspace_session_key,name)
+        g.store=resolve_workspace(name)
+        g.workspace=name
         if "csrf" not in session:
             session["csrf"]=secrets.token_urlsafe(32)
         if request.method=="POST":
@@ -76,7 +112,10 @@ def create_app(root=None):
     @app.context_processor
     def context():
         scenario=storage.state().get("Scenario",[])
-        return dict(user=getattr(g,"user",None),csrf=session.get("csrf",""),scenario=scenario[0] if scenario else None)
+        workspace_folder=home_storage.root/"workspaces"
+        workspace_ids=sorted((p.name for p in workspace_folder.iterdir() if p.is_dir() and re.fullmatch(r"[0-9a-f]{24}",p.name) and (p/"dataset.xlsx").is_file()),reverse=True)[:30] if workspace_folder.exists() else []
+        return dict(user=getattr(g,"user",None),csrf=session.get("csrf",""),scenario=scenario[0] if scenario else None,
+                    active_workspace=g.workspace,prepared_available=(home_storage.root/"demo-ready/dataset.xlsx").is_file(),workspace_ids=workspace_ids)
 
     @app.errorhandler(400)
     @app.errorhandler(403)
@@ -101,7 +140,7 @@ def create_app(root=None):
             if len(failures[key])>=5 or len(failures[ip_key])>=20:
                 flash("Quá nhiều lần đăng nhập thất bại. Thử lại sau 5 phút.","error")
                 return render_template("login.html"),429
-            account=next((a for a in storage.state().get("Accounts",[]) if a.get("username")==username),None)
+            account=next((a for a in home_storage.state().get("Accounts",[]) if a.get("username")==username),None)
             password=request.form.get("password","")
             if account and len(password)<=256 and check_password_hash(account["password_hash"],password):
                 session.clear()
@@ -112,7 +151,7 @@ def create_app(root=None):
             failures[key].append(now)
             failures[ip_key].append(now)
             flash("Tài khoản hoặc mật khẩu không đúng.","error")
-        no_admin=not any(a.get("role")=="admin" for a in storage.state().get("Accounts",[]))
+        no_admin=not any(a.get("role")=="admin" for a in home_storage.state().get("Accounts",[]))
         return render_template("login.html",no_admin=no_admin)
 
     @app.post("/logout")
@@ -136,6 +175,19 @@ def create_app(root=None):
         return render_template("admin.html",data=data,problems=problems[:100],problem_count=len(problems),
             scanner=scanner_command()[0],revisions=revisions[:20],published=published,
             audit=list(reversed(state.get("Audit",[])))[:15],accounts=state.get("Accounts",[]))
+
+    @app.post("/admin/workspace")
+    @require("admin")
+    def select_workspace():
+        target=request.form.get("target","")
+        if target not in {"original","prepared"} and not re.fullmatch(r"[0-9a-f]{24}",target):
+            abort(400)
+        try:
+            activate_workspace("" if target=="original" else target,g.user["username"])
+            flash("Đã chọn kho gốc." if target=="original" else "Đã chọn kho riêng. Xem dữ liệu và lịch nháp trước khi duyệt công bố.","success")
+        except ValueError as exc:
+            flash(str(exc),"error")
+        return redirect(url_for("admin"))
 
     @app.post("/admin/demo")
     @require("admin")
@@ -169,11 +221,13 @@ def create_app(root=None):
             imports=[]
             notes=[]
             manifests=[]
+            assumptions=[]
             for file in files:
                 payload=file.read(10*1024*1024+1)
                 name=inspect_xlsx(file.filename,payload)
                 engine=scan_payload(payload)
                 tables,messages=import_workbook(payload)
+                assumptions.extend(tables.pop("_Assumptions",[]))
                 source_id=secrets.token_hex(12)
                 source_folder=storage.root/"uploads"
                 source_folder.mkdir(parents=True,exist_ok=True)
@@ -186,10 +240,14 @@ def create_app(root=None):
             with storage.lock:
                 before=storage.fingerprint()
                 result=combine_import(storage.data(),imports)
-                guard_locked(storage.data(),result)
+                conflict=""
+                try:
+                    guard_locked(storage.data(),result)
+                except ValueError as exc:
+                    conflict=str(exc)
                 ident=secrets.token_hex(12)
-                pending=result | {"_Notes":[dict(message=m) for m in notes],"_Manifest":manifests,
-                    "_Meta":[dict(key="base",value=before),dict(key="actor",value=g.user["username"])]}
+                pending=result | {"_Notes":[dict(message=m) for m in notes],"_Manifest":manifests,"_Assumptions":assumptions,
+                    "_Meta":[dict(key="base",value=before),dict(key="actor",value=g.user["username"]),dict(key="locked_conflict",value=conflict)]}
                 atomic_write(storage.root/"pending"/(ident+".xlsx"),pending)
                 session["pending"]=ident
             return redirect(url_for("preview_upload"))
@@ -214,8 +272,8 @@ def create_app(root=None):
     @app.get("/admin/upload-preview")
     @require("admin")
     def preview_upload():
-        _,tables,_=pending_file()
-        return render_template("import.html",tables=tables,problems=readiness(tables)[:100])
+        _,tables,meta=pending_file()
+        return render_template("import.html",tables=tables,problems=readiness(tables)[:100],locked_conflict=meta.get("locked_conflict",""))
 
     @app.post("/admin/upload-confirm")
     @require("admin")
@@ -225,15 +283,32 @@ def create_app(root=None):
                 path,tables,meta=pending_file()
                 if meta["base"]!=storage.fingerprint():
                     raise ValueError("Dữ liệu đã đổi sau bản xem trước. Upload lại để đối chiếu.")
-                guard_locked(storage.data(),tables)
-                storage.save_data(tables,g.user["username"],"Admin xác nhận nhập: "+"; ".join(r["file"]+" sha256="+r["sha256"]+" scanner="+r["scanner"] for r in tables["_Manifest"]))
-                state=storage.state()
-                state.setdefault("Sources",[]).extend(tables["_Manifest"])
-                state.setdefault("SourceNotes",[]).extend(dict(import_id=path.stem,actor=g.user["username"],message=r["message"]) for r in tables["_Notes"])
-                atomic_write(storage.root/"state.xlsx",state)
+                destination=request.form.get("destination","current")
+                if destination not in {"current","new"}:
+                    raise ValueError("Chọn kho nhập dữ liệu hợp lệ.")
+                if destination=="new":
+                    workspace_id=secrets.token_hex(12)
+                    target=Store(home_storage.root/"workspaces"/workspace_id)
+                else:
+                    guard_locked(storage.data(),tables)
+                    target=g.store
+                with target.lock:
+                    target.save_data(tables,g.user["username"],"Admin xác nhận nhập: "+"; ".join(r["file"]+" sha256="+r["sha256"]+" scanner="+r["scanner"] for r in tables["_Manifest"]))
+                    state=target.state()
+                    state.setdefault("Sources",[]).extend(tables["_Manifest"])
+                    state.setdefault("SourceNotes",[]).extend(dict(import_id=path.stem,actor=g.user["username"],message=r["message"]) for r in tables["_Notes"])
+                    if tables.get("_Assumptions"):
+                        state["Assumptions"]=tables["_Assumptions"]
+                        state["Scenario"]=[dict(kind="assumed",label="KHO DỮ LIỆU CÓ GIẢ ĐỊNH / DEMO",note="Workbook có các giả định bổ sung. Xem ghi chú trước khi duyệt; dữ liệu này không phải thông tin vận hành đã xác minh.")]
+                    elif destination=="new":
+                        state["Scenario"]=[dict(kind="import",label="KHO NHẬP RIÊNG",note="Dữ liệu kho cũ được giữ nguyên. Kiểm tra lịch nháp trước khi duyệt công bố.")]
+                    atomic_write(target.root/"state.xlsx",state)
+                if destination=="new":
+                    known_workspaces[workspace_id]=target
+                    activate_workspace(workspace_id,g.user["username"])
                 path.unlink()
                 session.pop("pending",None)
-            flash("Đã nhập dữ liệu. Xem báo cáo thiếu/đủ trước khi xếp lịch.","success")
+            flash("Đã nhập vào kho riêng và chuyển sang kho mới. Bạn có thể tạo lịch; kho cũ được giữ nguyên." if destination=="new" else "Đã nhập dữ liệu. Xem báo cáo thiếu/đủ trước khi xếp lịch.","success")
         except ValueError as exc:
             flash(str(exc),"error")
         return redirect(url_for("admin"))
@@ -297,6 +372,12 @@ def create_app(root=None):
         try:
             with storage.lock:
                 storage.publish(ident,g.user["username"])
+            with home_storage.lock:
+                state=home_storage.state()
+                state["Meta"]=[r for r in state.get("Meta",[]) if r["key"]!="published_workspace"]
+                state["Meta"].append(dict(key="published_workspace",value=g.workspace))
+                home_storage.audit(state,g.user["username"],"published_workspace_selected",g.workspace or "original")
+                atomic_write(home_storage.root/"state.xlsx",state)
             flash("Đã công bố lịch trong app. Học viên chỉ thấy các buổi của bản thân.","success")
         except ValueError as exc:
             flash(str(exc),"error")
@@ -338,9 +419,10 @@ def create_app(root=None):
             pid=request.form.get("person_id","").strip()
             with storage.lock:
                 people={p["person_id"] for p in storage.data()["People"]}
-                if pid not in people:
-                    raise ValueError("Chọn đúng mã người từ bảng People.")
-                add_account(storage,username,password,"student",pid,g.user["username"])
+            if pid not in people:
+                raise ValueError("Chọn đúng mã người từ bảng People.")
+            with home_storage.lock:
+                add_account(home_storage,username,password,"student",pid,g.user["username"])
             flash("Đã tạo tài khoản cá nhân. Mật khẩu được lưu dạng hash.","success")
         except ValueError as exc:
             flash(str(exc),"error")

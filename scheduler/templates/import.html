@@ -1,1 +1,26 @@
-{% extends 'base.html' %}{% block content %}<div class="eyebrow">ADMIN / XÁC NHẬN NHẬP</div><h1>Kiểm tra trước khi sử dụng</h1><p class="lede">File đã qua trình quét virus và kiểm tra cấu trúc. Dữ liệu vẫn cần kiểm tra nghiệp vụ.</p><section class="panel"><h2>Các bảng sẽ được cập nhật</h2><div class="chips">{% for name,rows in tables.items() if not name.startswith('_') %}<span class="tag">{{ name }} · {{ rows|length }} dòng</span>{% endfor %}</div><p class="muted">Workbook chuẩn thay thế toàn bộ bảng cùng tên. Đối với nguồn gốc BTC, danh tính được ghép bằng mã; không tự điền giờ rảnh/chuyên môn.</p><form method="post" action="{{ url_for('confirm_upload') }}"><input type="hidden" name="csrf" value="{{ csrf }}"><button class="button primary">Xác nhận nhập dữ liệu</button> <a class="button secondary" href="{{ url_for('admin') }}">Quay lại</a></form></section><section class="panel"><h2>Kết quả kiểm tra virus</h2>{% for row in tables._Manifest %}<p><b>{{ row.file }}</b> · {{ row.scanner }} · Hoàn tất quét<br><code class="small">SHA-256: {{ row.sha256 }}</code></p>{% endfor %}</section><section class="panel"><h2>Ghi chú nguồn và chuyển đổi</h2>{% for row in tables._Notes %}<p>{{ row.message }}</p>{% endfor %}</section><section class="panel"><h2>Dữ liệu cần bổ sung sau khi nhập</h2>{% for row in problems %}<p><span class="tag warning">{{ row.code }}</span> {{ row.message }}</p>{% else %}<p class="success-text">Đủ dữ liệu cấu trúc để chạy solver.</p>{% endfor %}</section>{% endblock %}
+{% extends 'base.html' %}
+{% block content %}
+<div class="eyebrow">ADMIN / XÁC NHẬN NHẬP</div>
+<h1>Kiểm tra trước khi sử dụng</h1>
+<p class="lede">File đã qua trình quét virus và kiểm tra cấu trúc. Chọn nơi nhập dữ liệu sau khi xem kết quả kiểm tra.</p>
+<section class="panel">
+  <h2>Các bảng trong bản nhập</h2>
+  <div class="chips">{% for name,rows in tables.items() if not name.startswith('_') %}<span class="tag">{{ name }} · {{ rows|length }} dòng</span>{% endfor %}</div>
+  {% if locked_conflict %}
+  <div class="notice warning"><b>Kho hiện tại có lịch đang khoá.</b><p>{{ locked_conflict }}</p>Chọn <b>Tạo kho riêng và nhập</b> để dùng bộ file này mà không sửa hoặc xoá lịch khoá trong kho cũ.</div>
+  {% else %}
+  <p class="muted">Nhập vào kho hiện tại sẽ thay các bảng cùng tên. Chọn kho riêng nếu muốn thử bộ dữ liệu độc lập và giữ nguyên kho cũ.</p>
+  {% endif %}
+  {% if tables._Assumptions %}<div class="notice"><b>File có dữ liệu giả định/demo.</b> Các giả định sẽ được lưu cùng kho nhập và hiển thị trên giao diện.</div>{% endif %}
+  <form method="post" action="{{ url_for('confirm_upload') }}">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <button class="button primary" name="destination" value="new">Tạo kho riêng và nhập</button>
+    {% if not locked_conflict %}<button class="button secondary" name="destination" value="current">Nhập vào kho hiện tại</button>{% endif %}
+    <a class="button secondary" href="{{ url_for('admin') }}">Quay lại</a>
+  </form>
+</section>
+<section class="panel"><h2>Kết quả kiểm tra virus</h2>{% for row in tables._Manifest %}<p><b>{{ row.file }}</b> · {{ row.scanner }} · Hoàn tất quét<br><code class="small">SHA-256: {{ row.sha256 }}</code></p>{% endfor %}</section>
+<section class="panel"><h2>Ghi chú nguồn và chuyển đổi</h2>{% for row in tables._Notes %}<p>{{ row.message }}</p>{% endfor %}</section>
+{% if tables._Assumptions %}<details class="panel"><summary>Các giả định bổ sung trong workbook</summary><div class="table-scroll"><table><tbody>{% for row in tables._Assumptions %}<tr>{% for key,value in row.items() %}<td>{{ value }}</td>{% endfor %}</tr>{% endfor %}</tbody></table></div></details>{% endif %}
+<section class="panel"><h2>Dữ liệu cần bổ sung sau khi nhập</h2>{% for row in problems %}<p><span class="tag warning">{{ row.code }}</span> {{ row.message }}</p>{% else %}<p class="success-text">Đủ dữ liệu cấu trúc để chạy solver.</p>{% endfor %}</section>
+{% endblock %}

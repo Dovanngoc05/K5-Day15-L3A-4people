@@ -1,0 +1,10 @@
+{% if user and user.role=='admin' %}
+<section class="sample-banner">
+  <div><h3>{{ 'Đang dùng kho nhập riêng' if active_workspace else 'Đang dùng kho dữ liệu gốc' }}</h3><p>Chọn kho để xem báo cáo, tạo và duyệt lịch. Mỗi kho giữ dữ liệu và phiên bản lịch riêng.</p></div>
+  <div class="chips">
+    {% if workspace_ids %}<form method="post" action="{{ url_for('select_workspace') }}"><input type="hidden" name="csrf" value="{{ csrf }}"><label>Kho đã nhập<select name="target"><option value="original">Kho gốc</option>{% if prepared_available %}<option value="prepared" {% if active_workspace=='prepared' %}selected{% endif %}>Demo đã bổ sung</option>{% endif %}{% for ident in workspace_ids %}<option value="{{ ident }}" {% if active_workspace==ident %}selected{% endif %}>Kho riêng {{ ident[:8] }}</option>{% endfor %}</select></label><button class="button secondary">Chọn kho</button></form>{% endif %}
+    {% if prepared_available and active_workspace!='prepared' %}<form method="post" action="{{ url_for('select_workspace') }}"><input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="target" value="prepared"><button class="button primary">Mở bộ demo đã bổ sung</button></form>{% endif %}
+    {% if active_workspace %}<form method="post" action="{{ url_for('select_workspace') }}"><input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="target" value="original"><button class="button secondary">Về kho gốc</button></form>{% endif %}
+  </div>
+</section>
+{% endif %}

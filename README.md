@@ -13,6 +13,8 @@ python -m venv .venv
 
 Mở **http://127.0.0.1:8000**. `init-admin` hỏi mật khẩu riêng (ít nhất 12 ký tự), không có mật khẩu mặc định. Nếu đã có tài khoản thì bỏ bước này. macOS/Linux dùng `.venv/bin/python`.
 
+**Nếu không nhập được file A5 do HC-10:** upload `a5-input-demo-hoan-chinh.xlsx`, xem trước và chọn **Tạo kho riêng và nhập**. Kho gốc giữ nguyên. Nếu máy đã có bộ demo chuẩn bị sẵn, bấm **Mở bộ demo đã bổ sung** ngay trên trang admin. File `a5-demo-solver-result.xlsx` là kết quả, không dùng làm đầu vào.
+
 - **Admin:** upload nhiều `.xlsx` → kiểm tra cấu trúc và quét virus → xem trước/xác nhận nhập → bổ sung thông tin thiếu → cấu hình SC → chạy CP-SAT → kiểm tra và duyệt công bố.
 - **Trang cá nhân:** đăng nhập bằng tài khoản admin cấp; server chỉ trả những buổi của người gắn với tài khoản. Áp dụng cho học viên, giảng viên, lab coach và key coach.
 - **Thử ngay:** trong kho dữ liệu trống, bấm **Nạp bộ mẫu** để có dữ liệu hoàn toàn giả lập, chạy solver và tạo tài khoản cá nhân để kiểm tra.

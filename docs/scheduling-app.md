@@ -26,6 +26,16 @@ Tạo admin đầu tiên bằng `python app.py init-admin`; mật khẩu đượ
 
 ## Luồng admin
 
+### Nhập file A5 khi kho hiện tại có lịch khoá
+
+Chọn `a5-input-demo-hoan-chinh.xlsx` làm đầu vào. `a5-demo-solver-result.xlsx` là kết quả xếp lịch, không phải workbook đầu vào; app sẽ báo đúng loại file nếu chọn nhầm.
+
+Sau khi quét virus, app luôn cho xem trước. Nếu HC-10 chặn ghi đè lịch khoá, chọn **Tạo kho riêng và nhập**: app tạo một kho Excel độc lập, giữ nguyên dữ liệu và lịch công bố của kho cũ, rồi chuyển trang admin sang kho mới. Ghi chú `Assumptions` được giữ và hiển thị banner khi dữ liệu có giả định. Muốn cập nhật tại chỗ thì vẫn phải thoả kiểm tra HC-10; thao tác tạo kho riêng không mở khoá hay sửa lịch gốc.
+
+Nếu `runtime/demo-ready` đã tồn tại, nút **Mở bộ demo đã bổ sung** đưa admin thẳng đến bộ dữ liệu đầy đủ và lịch nháp đã tạo. Không cần đổi lệnh chạy hay cổng. Menu **Kho đã nhập** cho phép quay lại các kho riêng; **Về kho gốc** đưa admin về dữ liệu ban đầu.
+
+Tài khoản và quyền truy cập quản lý tập trung ở kho gốc của app. Mỗi phiên admin giữ lựa chọn kho riêng, tránh thao tác nhầm khi admin khác chuyển kho. Học viên tiếp tục xem kho đã công bố trước đó; chỉ sau khi admin duyệt một phiên bản, trang cá nhân mới dùng kho vừa duyệt. Mọi thao tác chọn kho yêu cầu admin và CSRF; dữ liệu mỗi kho vẫn lưu bằng Excel trong `runtime/workspaces/<id>/`.
+
 1. Upload 1–10 file `.xlsx`, tối đa 10 MB/file, tổng request 32 MB. Không nhận `.xls`, `.xlsm`, macro hoặc workbook có đối tượng nhúng/liên kết dữ liệu ngoài.
 2. Kiểm tra ZIP/XML có giới hạn, quét virus bằng engine thật, đọc dữ liệu; xem bản tổng hợp trước khi xác nhận nhập. Nếu một file lỗi, cả batch không nhập vào dataset hiện tại. Bản file đã quét có thể được giữ để truy vết, không được tự công bố.
 3. Xác nhận nhập: workbook chuẩn thay toàn bộ bảng cùng tên. Workbook BTC được adapter đọc bảo thủ; chưa hiểu thông tin thì báo cần làm rõ.

@@ -13,6 +13,8 @@ def import_workbook(payload):
     names = set(book.sheetnames)
     book.close()
     canonical = names & set(SCHEMA)
+    if not canonical and "Schedule" in names:
+        raise ValueError("Đây là file kết quả lịch, không phải đầu vào. Chọn a5-input-demo-hoan-chinh.xlsx hoặc workbook có People, Sessions, Slots, Rooms, Enrollments, Availability, Weights.")
     if canonical:
         parsed=read_tables(BytesIO(payload))
         for name in canonical:
@@ -20,7 +22,10 @@ def import_workbook(payload):
                 missing=set(SCHEMA[name])-OPTIONAL_COLUMNS.get(name,set())-row.keys()
                 if missing:
                     raise ValueError(name+": thiếu cột "+", ".join(sorted(missing)))
-        return {k:parsed[k] for k in SCHEMA if k in canonical}, ["Đã đọc workbook chuẩn; các sheet được cung cấp sẽ thay thế bảng cùng tên sau xác nhận."]
+        result={k:parsed[k] for k in SCHEMA if k in canonical}
+        if parsed.get("Assumptions"):
+            result["_Assumptions"]=parsed["Assumptions"][:200]
+        return result, ["Đã đọc workbook chuẩn; các sheet được cung cấp sẽ thay thế bảng cùng tên sau xác nhận."]
     book=load_workbook(BytesIO(payload),data_only=True,keep_links=False)
     try:
         tables={}

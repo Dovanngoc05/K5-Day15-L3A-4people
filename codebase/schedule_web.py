@@ -1,4 +1,4 @@
-"""Excel-backed scheduling web app. Start with python run.py."""
+"""Scheduler entry point and legacy Excel web app."""
 from collections import defaultdict
 from contextlib import ExitStack
 from datetime import timedelta
@@ -9,6 +9,7 @@ from io import BytesIO
 import os
 from pathlib import Path
 from secrets import token_urlsafe
+import sys
 from uuid import uuid4
 
 from filelock import FileLock, Timeout
@@ -342,7 +343,7 @@ def ordered(items):
     return sorted(items, key=lambda entry: (entry[1]["day"], entry[1]["start"], entry[0]))
 
 
-if __name__ == "__main__":
+def serve_legacy():
     try:
         application = create_app()
     except RuntimeError as error:
@@ -352,3 +353,12 @@ if __name__ == "__main__":
     if not application.config["SESSION_COOKIE_SECURE"]:
         print(f"Lịch đào tạo AI20K · http://{host}:{port}", flush=True)
     serve(application, host=host, port=port)
+
+
+if __name__ == "__main__":
+    if sys.argv[1:] == ["--legacy"]:
+        serve_legacy()
+    else:
+        from .app import main
+
+        raise SystemExit(main())

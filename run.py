@@ -84,7 +84,7 @@ def py(*args):
 
 
 def run_app():
-    return py("-m", "codebase.schedule_web")
+    return py(os.path.join("codebase", "app.py"))
 
 
 def main(argv):

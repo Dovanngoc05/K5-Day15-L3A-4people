@@ -8,7 +8,7 @@ Chạy trong thư mục `K5-Day15-L3A-4people` bằng PowerShell.
 python -m pip install -r requirements.txt
 $env:SCHEDULE_SECRET = python -c "import secrets; print(secrets.token_urlsafe(48))"
 $env:SCHEDULE_ADMIN_PASSWORD = python -c "import getpass; print(getpass.getpass('Mat khau quan tri (it nhat 16 ky tu): '))"
-python run.py
+python -m codebase.schedule_web --legacy
 ```
 
 Mở [trang lịch đào tạo](http://127.0.0.1:8080). Giữ `SCHEDULE_SECRET` trong cấu hình bí mật nếu dùng qua nhiều lần khởi động. Thay giá trị này sẽ vô hiệu hóa phiên và mã truy cập học viên cũ. Ban đào tạo, Key Coach và Day Lead dùng vai trò quản trị chung. Nếu phục vụ qua mạng, đặt sau HTTPS và bật `SCHEDULE_HTTPS=1` để cookie chỉ truyền qua HTTPS.
@@ -23,7 +23,7 @@ Upload được quét trên máy chủ bằng Microsoft Defender trên Windows h
 4. Quay về trang quản trị và chọn **Kiểm tra và xếp thử**. Solver đọc trực tiếp `ClassesesData.xlsx` đã lưu. `INFEASIBLE` nghĩa là các buổi không thể xếp đồng thời theo ràng buộc. `FEASIBLE` là lịch hợp lệ tìm được trong giới hạn 20 giây. `OPTIMAL` là lịch có điểm phạt thấp nhất đã được chứng minh.
 5. Chọn **Xếp và công bố**. Ứng dụng chạy lại solver với lịch đã công bố mới nhất. Dùng bộ lọc để xem lịch từng người. Dùng **Lấy mã truy cập** và chuyển riêng mã cho đúng học viên.
 
-Dữ liệu làm việc được giữ dưới `.schedule-data/` qua các lần khởi động. Khi công bố, ứng dụng lưu một bản của ba tệp gốc, `ClassesesData.xlsx` và lịch kết quả. Nút tải `ClassesesData.xlsx` dùng để lấy bản sao khi cần. Dùng `python run.py cli` để chạy luồng dòng lệnh hackathon.
+Dữ liệu làm việc được giữ dưới `.schedule-data/` qua các lần khởi động. Khi công bố, ứng dụng lưu một bản của ba tệp gốc, `ClassesesData.xlsx` và lịch kết quả. Nút tải `ClassesesData.xlsx` dùng để lấy bản sao khi cần. Dùng `python -m codebase.schedule_web --legacy cli` để chạy luồng dòng lệnh hackathon.
 
 ## Các sheet và quy ước
 

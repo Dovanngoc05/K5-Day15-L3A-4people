@@ -167,7 +167,7 @@ ____
 
 ## Ứng dụng web xếp lịch
 
-Chạy `python -m codebase.schedule_web` sau khi thiết lập bí mật và mật khẩu quản trị. Xem [hướng dẫn cài đặt, nhập Excel và công bố lịch](docs/schedule-web.md).
+Chạy `python app.py init-admin` để tạo tài khoản và `python run.py` để mở trang quản trị tại `http://127.0.0.1:8000/admin`. Nút **Trích xuất bằng AI** nằm cạnh **Quét virus và xem trước**.
 
 ## Local AI schedule extraction
 

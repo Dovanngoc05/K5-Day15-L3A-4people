@@ -103,8 +103,9 @@ class ExtractionJob:
             )
             self.update(status="done", message=message, issue_count=issue_count,
                         fact_count=len(report["model_facts_for_review"]))
-        except (URLError, TimeoutError):
-            self.update(status="error", message="llama-server không phản hồi khi trích xuất. Thử chạy lại.")
+        except URLError:
+            self.logger.exception("Lost connection to llama-server during extraction")
+            self.update(status="error", message="Mất kết nối với llama-server trong khi trích xuất.")
         except ValueError as exc:
             self.update(status="error", message=str(exc))
         except Exception:

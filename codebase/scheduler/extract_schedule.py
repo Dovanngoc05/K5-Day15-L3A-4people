@@ -11,7 +11,7 @@ from urllib.error import URLError
 
 from openpyxl import load_workbook
 
-from ..ai import ModelResponseTruncated, call_model
+from ..ai import ModelInputTooLarge, ModelResponseTruncated, call_model
 from .excel import SCHEMA, text
 from .importer import import_workbook
 from .security import inspect_xlsx
@@ -263,6 +263,7 @@ def split_truncated_batch(cells):
 
 def collect_sheet_facts(report, coverage, cells, port, model, timeout, batch_chars, stats=None):
     file, sheet, context = (coverage[key] for key in ("file", "sheet", "context"))
+    consecutive_timeouts = 0
     for batch in batches(cells.items(), batch_chars):
         pending = [batch]
         while pending:
@@ -271,16 +272,26 @@ def collect_sheet_facts(report, coverage, cells, port, model, timeout, batch_cha
                 facts, issues = model_facts(
                     current, port, model, timeout, file=file, sheet=sheet, context=context, stats=stats
                 )
-            except ModelResponseTruncated:
-                coverage["truncated_batches"] += 1
+            except (ModelResponseTruncated, ModelInputTooLarge, TimeoutError) as exc:
+                if isinstance(exc, ModelResponseTruncated):
+                    coverage["truncated_batches"] += 1
+                    reason = "response_truncated"
+                elif isinstance(exc, ModelInputTooLarge):
+                    reason = "context_limit"
+                else:
+                    reason = "request_timeout"
+                    consecutive_timeouts += 1
+                    if consecutive_timeouts >= 3:
+                        raise ValueError(f"llama-server quá thời gian chờ 3 lần liên tiếp ở sheet {sheet}.") from exc
                 parts = split_truncated_batch(current)
                 if parts:
                     pending.extend(reversed(parts))
                 else:
                     report["model_extraction_issues"].append(
-                        dict(file=file, sheet=sheet, cell=next(iter(current)), reason="response_truncated")
+                        dict(file=file, sheet=sheet, cell=next(iter(current)), reason=reason)
                     )
                 continue
+            consecutive_timeouts = 0
             report["model_facts_for_review"].extend(
                 dict(fact, file=file, sheet=sheet, context=context) for fact in facts
             )
@@ -383,7 +394,7 @@ def extract(teaching, coaches):
 
 
 def run_extraction(teaching, coaches, output_path, *, port=8080, model="local-model",
-                   timeout=600, batch_chars=15000, without_model=False, progress=None, stats=None):
+                   timeout=600, batch_chars=2600, without_model=False, progress=None, stats=None):
     report, sheets = extract(teaching, coaches)
     if not without_model:
         for coverage, (_, sheet, cells) in zip(report["sheet_coverage"], sheets):

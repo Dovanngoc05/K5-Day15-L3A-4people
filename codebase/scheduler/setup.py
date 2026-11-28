@@ -1,10 +1,25 @@
 """Admin-only explicit declarations for missing data; all changes audited."""
 import re
+import hashlib
+import json
 from flask import flash, g, redirect, render_template, request, url_for
 from .excel import text
+from .teacher_profiles import REPORT_NAME, teacher_profile_updates
+
+
+def profile_revision(updates):
+    return hashlib.sha256(json.dumps(updates, sort_keys=True).encode("utf-8")).hexdigest()
 
 
 def register_setup(app,store,require):
+    def extraction_updates(data):
+        try:
+            return teacher_profile_updates(store.root / REPORT_NAME, data)
+        except FileNotFoundError:
+            return {}
+        except (OSError, ValueError, KeyError, TypeError, AttributeError) as exc:
+            raise ValueError("Không đọc được hồ sơ giảng viên từ " + REPORT_NAME) from exc
+
     @app.route("/admin/setup",methods=["GET","POST"])
     @require("admin")
     def setup_data():
@@ -14,7 +29,14 @@ def register_setup(app,store,require):
                     data=store.data()
                     people={p["person_id"]:p for p in data["People"]}
                     action=request.form.get("action")
-                    if action=="person":
+                    if action=="teacher_profiles":
+                        updates=extraction_updates(data)
+                        if not updates or request.form.get("revision")!=profile_revision(updates):
+                            raise ValueError("Đề xuất đã thay đổi. Kiểm tra lại trước khi xác nhận.")
+                        for pid, changes in updates.items():
+                            people[pid].update(changes)
+                        detail=f"Admin xác nhận {len(updates)} hồ sơ giảng viên từ {REPORT_NAME}"
+                    elif action=="person":
                         pid=request.form.get("person_id","")
                         if pid not in people:
                             raise ValueError("Không tìm thấy người.")
@@ -91,4 +113,10 @@ def register_setup(app,store,require):
             return redirect(url_for("setup_data"))
         with store.lock:
             data=store.data()
-        return render_template("setup.html",data=data,classes=sorted({s["class_id"] for s in data["Sessions"]}))
+            try:
+                updates=extraction_updates(data)
+            except ValueError as exc:
+                flash(str(exc),"error")
+                updates={}
+        return render_template("setup.html",data=data,classes=sorted({s["class_id"] for s in data["Sessions"]}),
+                               teacher_updates=updates,profile_revision=profile_revision(updates))

@@ -25,7 +25,7 @@ from pathlib import Path
 import socket
 import subprocess
 import time
-from urllib.error import URLError
+from urllib.error import HTTPError, URLError
 from urllib.request import HTTPRedirectHandler, ProxyHandler, Request, build_opener
 
 if __package__:
@@ -126,6 +126,10 @@ def llama_server(executable, model):
     try:
         _wait_ready(process, port)
         yield port
+    except URLError as exc:
+        if process.poll() is not None:
+            raise ValueError(f"llama-server đã dừng trong khi trích xuất (mã {process.returncode}).") from exc
+        raise
     finally:
         cleanup()
         atexit.unregister(cleanup)
@@ -138,6 +142,23 @@ class _LocalOnly(HTTPRedirectHandler):
 
 class ModelResponseTruncated(ValueError):
     """The model reached its generation limit before completing the response."""
+
+
+class ModelInputTooLarge(ValueError):
+    """The prompt exceeds the server's available context."""
+
+
+def _llama_http_error(error):
+    with error:
+        body = error.read(8192).lower()
+    if error.code in {400, 413} and (
+        error.code == 413 or b"exceed_context_size" in body
+        or (b"context" in body and any(word in body for word in (b"exceed", b"too large", b"too long")))
+    ):
+        return ModelInputTooLarge("Dữ liệu gửi tới llama-server vượt cửa sổ ngữ cảnh.")
+    if error.code in {401, 403}:
+        return ValueError(f"llama-server từ chối xác thực (HTTP {error.code}). Kiểm tra LLAMA_API_KEY.")
+    return ValueError(f"llama-server trả lỗi HTTP {error.code} khi trích xuất.")
 
 
 def _read_llama_stream(response, stats):
@@ -199,11 +220,18 @@ def _llama_completion(system, user, port, model, timeout, schema, stats=None):
         json.dumps(body, ensure_ascii=False).encode("utf-8"), headers,
     )
     opener = build_opener(ProxyHandler({}), _LocalOnly())
-    with opener.open(request, timeout=timeout) as response:
-        if stats is not None and response.headers.get_content_type() == "text/event-stream":
-            result = _read_llama_stream(response, stats)
-        else:
-            result = json.load(response)
+    try:
+        with opener.open(request, timeout=timeout) as response:
+            if stats is not None and response.headers.get_content_type() == "text/event-stream":
+                result = _read_llama_stream(response, stats)
+            else:
+                result = json.load(response)
+    except HTTPError as exc:
+        raise _llama_http_error(exc) from exc
+    except URLError as exc:
+        if isinstance(exc.reason, TimeoutError):
+            raise exc.reason from exc
+        raise
     choice = result["choices"][0]
     usage = result.get("usage")
     if stats is not None and usage is not None:

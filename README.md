@@ -1,4 +1,33 @@
-# 4people — Trợ lý đối chiếu lịch và soạn thông báo phòng lab (Track A5)
+# 4people — Xếp lịch đào tạo bằng Excel và CP-SAT (Track A5)
+
+## Chạy web local
+
+Python 3.10+. Không cần SQL, hosting hoặc API key để dùng bộ xếp lịch.
+
+```powershell
+python -m venv .venv
+.venv\Scripts\python.exe -m pip install -r requirements.txt
+.venv\Scripts\python.exe app.py init-admin
+.venv\Scripts\python.exe run.py
+```
+
+Mở **http://127.0.0.1:8000**. `init-admin` hỏi mật khẩu riêng (ít nhất 12 ký tự), không có mật khẩu mặc định. Nếu đã có tài khoản thì bỏ bước này. macOS/Linux dùng `.venv/bin/python`.
+
+- **Admin:** upload nhiều `.xlsx` → kiểm tra cấu trúc và quét virus → xem trước/xác nhận nhập → bổ sung thông tin thiếu → cấu hình SC → chạy CP-SAT → kiểm tra và duyệt công bố.
+- **Trang cá nhân:** đăng nhập bằng tài khoản admin cấp; server chỉ trả những buổi của người gắn với tài khoản. Áp dụng cho học viên, giảng viên, lab coach và key coach.
+- **Thử ngay:** trong kho dữ liệu trống, bấm **Nạp bộ mẫu** để có dữ liệu hoàn toàn giả lập, chạy solver và tạo tài khoản cá nhân để kiểm tra.
+- **Lưu trữ:** workbook đầu vào, dữ liệu chuẩn hoá, tài khoản băm mật khẩu, phiên bản lịch và nhật ký đều local trong `runtime/` được Git bỏ qua. Không lưu SQL.
+- **Upload an toàn:** Windows tự tìm Microsoft Defender; máy khác dùng ClamAV và `CLAMSCAN_PATH`. Không có/quét lỗi thì chặn upload. Chỉ nhận `.xlsx`, tối đa 10 MB/file và 10 file/lượt, tổng request 32 MB.
+
+Ba file hiện tại có lịch và danh tính nhưng thiếu một phần giờ rảnh, chuyên môn/kỹ năng, đăng ký lớp và giới hạn giờ làm. App sẽ báo thiếu để admin bổ sung, không tự tạo dữ kiện rồi kết luận lịch hợp lệ. Hướng dẫn schema, nhập file và ràng buộc: [docs/scheduling-app.md](docs/scheduling-app.md).
+
+**Trạng thái hackathon:** CP-SAT là bộ tối ưu chạy local, không phải lời gọi LLM. `agent.py`/`ai.py` vẫn thuộc luồng AI mẫu; web chưa gọi model thật. Benchmark hiện có kiểm tra luồng tra lịch/soạn thông báo, chưa phải bằng chứng toàn bộ web đạt. Chưa sửa chuẩn đạt, metric hoặc kết quả chạy.
+
+---
+
+## Tài liệu khung hackathon
+
+Các hướng dẫn về chế độ dòng lệnh giả bên dưới là tài liệu khung ban đầu. Lệnh `python run.py` hiện mở web local như phần trên; `check`, `eval`, `score`, `simulate` giữ nguyên bộ chạy của khung.
 
 **Thành viên, lớp, track:** xem [TEAMS.md](TEAMS.md).
 
@@ -135,3 +164,21 @@ ____
 | 6 | Mô phỏng chi phí khi dùng thật | `cost/` |
 | 7 | Slide + demo + video dự phòng | slide trong repo (PDF, PPTX, HTML…) hoặc link slide ở form CP4 · link video: ____ |
 | + | *Bonus:* người dùng thử | `validation/log.md` |
+
+## Ứng dụng web xếp lịch
+
+Chạy `python app.py init-admin` để tạo tài khoản và `python run.py` để mở trang quản trị tại `http://127.0.0.1:8000/admin`. Nút **Trích xuất bằng AI** nằm cạnh **Quét virus và xem trước**.
+
+## Local AI schedule extraction
+
+Set `LLAMACPPPATH` to the llama-server executable and `GGUFPath` to your GGUF
+model in the repository's ignored `.env` file. Start the web app with
+`python run.py`. In the admin upload panel, select the teaching and lab-coach
+workbooks, then choose **Trích xuất bằng AI** to scan them and run local extraction.
+The job stops its llama-server process and provides a JSON report for review.
+
+To run extraction from the command line with an existing llama-server:
+
+```powershell
+python -m codebase.scheduler.extract_schedule --out runtime/schedule-extraction.json
+```

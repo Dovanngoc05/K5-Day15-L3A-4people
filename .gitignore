@@ -10,6 +10,7 @@ __pycache__/
 *.pyc
 .venv/
 .venv-libs/
+runtime/
 venv/
 node_modules/
 .DS_Store
@@ -36,3 +37,12 @@ evidence/**/raw-*
 # Nguyên file data BTC cấp (data/preclass, data/training-ops… của repo đề): để ở đây, không commit
 data-btc
 data-btc/
+.schedule-data/
+
+# Nextcloud conflict copies and Excel lock files
+* (conflicted copy *)*
+~$*.xlsx
+/.vs/K5-Day15-L3A-4people/FileContentIndex/3c20e586-92ef-4131-8630-29ee2962f851.vsidx
+/.vs/K5-Day15-L3A-4people/FileContentIndex
+/.vs
+/.env.example

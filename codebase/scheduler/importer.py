@@ -2,14 +2,45 @@
 from io import BytesIO
 from collections import defaultdict
 from datetime import datetime
+import json
+from pathlib import Path
 import re
 
 from openpyxl import load_workbook
 
 from .excel import SCHEMA, OPTIONAL_COLUMNS, empty_data, read_tables, text
+from .solver import integer
 
 
 LAB_ROOMS_SHEET = "Lịch lab 2604-0805"
+SOURCE_DATA_DIR = Path(__file__).resolve().parents[2] / "data"
+LAB_ROOM_CAPACITIES = SOURCE_DATA_DIR / "lab-room-capacities-2604-0805.json"
+INLINE_ROOM_CAPACITY = re.compile(r"\b([A-Z]\d{3})\s*\((\d+)\s*HV\)")
+
+
+def read_lab_room_capacities(path=LAB_ROOM_CAPACITIES):
+    with path.open(encoding="utf-8-sig") as source:
+        rooms = json.load(source)
+    seen = set()
+    for row in rooms:
+        rid = row["room_id"]
+        if not re.fullmatch(r"[A-Z]\d{3}",rid) or rid in seen:
+            raise ValueError(f"Mã phòng không hợp lệ hoặc trùng trong {path.name}: {rid}")
+        seen.add(rid)
+        if row["capacity"] is not None:
+            row["capacity"] = integer(row["capacity"],f"{rid}/capacity",1)
+    return rooms
+
+
+def fill_lab_room_capacities(data):
+    capacities = {row["room_id"]:row["capacity"] for row in read_lab_room_capacities()}
+    changes = {}
+    for room in data["Rooms"]:
+        rid = room["room_id"]
+        capacity = capacities.get(rid)
+        if capacity is not None and not text(room.get("capacity")):
+            room["capacity"] = changes[rid] = capacity
+    return changes
 
 
 def lab_room_rows(sheet):
@@ -46,14 +77,19 @@ def import_workbook(payload, *, room_evidence=None):
                 row=dict(zip(headers,values))
                 pid=text(row.get("hv"))
                 if pid:
-                    people.append(dict(person_id=pid,name=text(row.get("full_name")) or pid,role="student",subjects="",skills="",max_minutes_day="",max_minutes_week=""))
+                    people.append(dict(person_id=pid,name=text(row.get("full_name")) or pid,role="student",subjects="",skills="",max_minutes_day="",max_minutes_week="",student_id=text(row.get("student_id"))))
             tables["People"]=people
             notes.append("Learners: chỉ nhập danh tính giả lập; thiếu đăng ký lớp và giờ rảnh. Không tự suy đoán lớp từ mã/ngày tạo.")
         if "Khoá 9 (GĐ1)" in names:
             sheet=book["Khoá 9 (GĐ1)"]
             sessions,slots,people,rooms={},{},{},{}
+            explicit_capacities=defaultdict(set)
             current_day=""
             for row in sheet.iter_rows():
+                for cell in row:
+                    for rid, capacity in INLINE_ROOM_CAPACITY.findall(text(cell.value)):
+                        if int(capacity)>0:
+                            explicit_capacities[rid].add(int(capacity))
                 day=text(sheet.cell(row[0].row,1).value)
                 if re.fullmatch(r"\d{2}/\d{2}/\d{4}",day):
                     current_day=datetime.strptime(day,"%d/%m/%Y").date().isoformat()
@@ -92,6 +128,12 @@ def import_workbook(payload, *, room_evidence=None):
                         baseline_teacher=next(iter(lecturers)) if len(lecturers)==1 else "",baseline_assistants="",baseline_key_coach="",
                         baseline_room=room_ids[0] if len(room_ids)==1 else "")
                     notes.append(f"{sid}: nguồn Khoá 9 (GĐ1)/{cell.coordinate}; giữ khoá để admin xác nhận. Phòng nhiều/chưa chốt/online và phân công nhiều người cần bổ sung rõ.")
+            for rid, capacities in sorted(explicit_capacities.items()):
+                room=rooms.setdefault(rid,dict(room_id=rid,capacity=""))
+                if len(capacities)==1:
+                    room["capacity"]=next(iter(capacities))
+                else:
+                    notes.append(f"Khoá 9 (GĐ1): {rid} có nhiều mức sức chứa; cần xác nhận.")
             tables.update(Sessions=list(sessions.values()),Slots=list(slots.values()),People=list(people.values()),Rooms=list(rooms.values()))
         if LAB_ROOMS_SHEET in names:
             found={}
@@ -145,6 +187,9 @@ def combine_import(current, imports):
                 for row in rows:
                     if row[key] not in index:
                         index[row[key]]=row
+                    elif (table=="People" and row.get("role")==index[row[key]].get("role")=="student"
+                          and text(row.get("student_id")) and not text(index[row[key]].get("student_id"))):
+                        index[row[key]]={**index[row[key]],"student_id":row["student_id"]}
                     elif table=="Rooms" and not text(index[row[key]].get("capacity")) and text(row.get("capacity")):
                         index[row[key]]={**index[row[key]],"capacity":row["capacity"]}
                 result[table]=list(index.values())

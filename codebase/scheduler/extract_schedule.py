@@ -13,7 +13,8 @@ from openpyxl import load_workbook
 
 from ..ai import ModelInputTooLarge, ModelResponseTruncated, call_model
 from .excel import SCHEMA, text
-from .importer import LAB_ROOMS_SHEET, import_workbook, lab_room_rows
+from .importer import (INLINE_ROOM_CAPACITY, LAB_ROOM_CAPACITIES, LAB_ROOMS_SHEET,
+                       import_workbook, read_lab_room_capacities)
 from .security import inspect_xlsx
 from .solver import readiness
 
@@ -25,7 +26,6 @@ SESSION = re.compile(r"\b(L[23](?:A\+B|AB|A|B))\s*[—–-]\s*((?:LEC|LAB)\s*\d+
 ROOM = re.compile(r"\b[A-Z]\d{3}\b")
 LECTURER = re.compile(r"\bLecturer\s+[A-Z]+\b")
 COACH = re.compile(r"\bLab Coach\s+[A-Z]+\b")
-CAPACITY = re.compile(r"\b([A-Z]\d{3})\s*\((\d+)\s*HV\)")
 KINDS = (
     "teacher_skill", "coach_skill", "teaching_experience", "session", "assignment",
     "availability", "registration", "change_request", "room", "room_capacity",
@@ -299,7 +299,7 @@ def collect_sheet_facts(report, coverage, cells, port, model, timeout, batch_cha
             coverage["model_batches"] += 1
 
 
-def extract(teaching, coaches):
+def extract(teaching, coaches, *, room_capacities=LAB_ROOM_CAPACITIES):
     teaching_payload = workbook_data(teaching)
     coach_payload = workbook_data(coaches)
     tables, notes = import_workbook(teaching_payload)
@@ -312,10 +312,6 @@ def extract(teaching, coaches):
         rosters = [coach_book[name] for name in COACH_SHEETS]
         teaching_rows = list(timetable(main, teaching.name))
         coach_rows = [row for sheet in rosters for row in coach_schedule(sheet, coaches.name)]
-        lab_rooms = [
-            dict(row, source=f"{coaches.name}/{LAB_ROOMS_SHEET}!{row['cells']}")
-            for row in lab_room_rows(coach_book[LAB_ROOMS_SHEET])
-        ]
         sheets = [
             (file, sheet.title, dict(source_cells(sheet)))
             for file, book in [(teaching.name, teaching_book), (coaches.name, coach_book)]
@@ -327,12 +323,13 @@ def extract(teaching, coaches):
             coach_book.close()
 
     capacities = defaultdict(lambda: defaultdict(list))
+    lab_rooms = read_lab_room_capacities(room_capacities)
     lab_room_ids = set()
     for row in lab_rooms:
-        label = row["room_label"]
-        lab_room_ids.update(ROOM.findall(label))
-        if ROOM.fullmatch(label):
-            capacities[label][row["listed_capacity"]].append(row["source"])
+        rid = row["room_id"]
+        lab_room_ids.add(rid)
+        if row["capacity"] is not None:
+            capacities[rid][row["capacity"]].append(f"{room_capacities.name}:{rid}")
 
     room_mentions = defaultdict(list)
     for file, sheet, cells in sheets:
@@ -340,10 +337,11 @@ def extract(teaching, coaches):
             source = f"{file}/{sheet}!{cell}"
             for room in sorted(set(ROOM.findall(value))):
                 room_mentions[room].append(source)
-            if sheet != TEACHING_SHEET and sheet not in COACH_SHEETS:
+            if sheet != TEACHING_SHEET:
                 continue
-            for room, count in CAPACITY.findall(value):
-                capacities[room][int(count)].append(source)
+            for room, count in INLINE_ROOM_CAPACITY.findall(value):
+                if int(count)>0:
+                    capacities[room][int(count)].append(source)
     rooms = {row["room_id"]: row for row in tables["Rooms"]}
     observed_rooms = {rid for row in teaching_rows + coach_rows for rid in row["rooms"]}
     for room in sorted(set(capacities) | lab_room_ids | observed_rooms):
@@ -351,6 +349,7 @@ def extract(teaching, coaches):
         if len(capacities[room]) == 1:
             item["capacity"] = next(iter(capacities[room]))
         elif len(capacities[room]) > 1:
+            item["capacity"] = ""
             values = ", ".join(map(str, sorted(capacities[room])))
             notes.append(f"{room}: sức chứa trong nguồn có nhiều giá trị ({values}); cần xác nhận.")
     tables["Rooms"] = list(rooms.values())
@@ -392,7 +391,7 @@ def extract(teaching, coaches):
     return {
         "tables": tables, "teaching_observations": teaching_rows, "coach_observations": coach_rows,
         "room_capacity_evidence": {room: dict(values) for room, values in capacities.items() if values},
-        "lab_room_capacity_rows": lab_rooms,
+        "lab_room_capacities": lab_rooms,
         "room_mentions_for_review": dict(room_mentions),
         "sheet_coverage": [
             dict(file=file, sheet=sheet, context=SHEET_CONTEXT.get(sheet, "unclassified"),
@@ -410,8 +409,9 @@ def extract(teaching, coaches):
 
 
 def run_extraction(teaching, coaches, output_path, *, port=8080, model="local-model",
-                   timeout=600, batch_chars=2600, without_model=False, progress=None, stats=None):
-    report, sheets = extract(teaching, coaches)
+                   timeout=600, batch_chars=2600, without_model=False, progress=None, stats=None,
+                   room_capacities=LAB_ROOM_CAPACITIES):
+    report, sheets = extract(teaching, coaches, room_capacities=room_capacities)
     if not without_model:
         for coverage, (_, sheet, cells) in zip(report["sheet_coverage"], sheets):
             if progress:
@@ -428,6 +428,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--teaching", type=Path, default=Path("data/teaching-schedule.xlsx"))
     parser.add_argument("--coaches", type=Path, default=Path("data/lab-coach-schedule.xlsx"))
+    parser.add_argument("--room-capacities", type=Path, default=LAB_ROOM_CAPACITIES)
     parser.add_argument("--out", type=Path, default=Path("runtime/schedule-extraction.json"))
     parser.add_argument("--port", type=int, default=8080)
     parser.add_argument("--model", default="local-model")
@@ -443,6 +444,7 @@ def main():
         report = run_extraction(
             args.teaching, args.coaches, args.out, port=args.port, model=args.model,
             timeout=args.timeout, batch_chars=args.batch_chars, without_model=args.without_model,
+            room_capacities=args.room_capacities,
         )
     except URLError as exc:
         parser.exit(1, f"Could not reach llama-server on 127.0.0.1:{args.port}: {exc.reason}\n")

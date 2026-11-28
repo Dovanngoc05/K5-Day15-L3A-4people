@@ -1,0 +1,515 @@
+[
+  {
+    "room_id": "C102",
+    "capacity": 80,
+    "observations": [
+      {
+        "listed_capacity": 80,
+        "single_room": false,
+        "source": "lab-coach-schedule.xlsx/Lịch lab 2604-0805!F23/H23"
+      },
+      {
+        "listed_capacity": 80,
+        "single_room": false,
+        "source": "lab-coach-schedule.xlsx/Lịch lab 2604-0805!F55/H55"
+      }
+    ]
+  },
+  {
+    "room_id": "C104",
+    "capacity": 160,
+    "observations": [
+      {
+        "listed_capacity": 110,
+        "single_room": false,
+        "source": "lab-coach-schedule.xlsx/Lịch lab 2604-0805!F11/H11"
+      },
+      {
+        "listed_capacity": 160,
+        "single_room": false,
+        "source": "lab-coach-schedule.xlsx/Lịch lab 2604-0805!F133/H133"
+      }
+    ]
+  },
+  {
+    "room_id": "C201",
+    "capacity": 160,
+    "observations": [
+      {
+        "listed_capacity": 80,
+        "single_room": false,
+        "source": "lab-coach-schedule.xlsx/Lịch lab 2604-0805!F12/H12"
+      },
+      {
+        "listed_capacity": 80,
+        "single_room": false,
+        "source": "lab-coach-schedule.xlsx/Lịch lab 2604-0805!F55/H55"
+      },
+      {
+        "listed_capacity": 60,
+        "single_room": false,
+        "source": "lab-coach-schedule.xlsx/Lịch lab 2604-0805!F72/H72"
+      },
+      {
+        "listed_capacity": 110,
+        "single_room": false,
+        "source": "lab-coach-schedule.xlsx/Lịch lab 2604-0805!F81/H81"
+      },
+      {
+        "listed_capacity": 160,
+        "single_room": false,
+        "source": "lab-coach-schedule.xlsx/Lịch lab 2604-0805!F105/H105"
+      },
+      {
+        "listed_capacity": 60,
+        "single_room": false,
+        "source": "lab-coach-schedule.xlsx/Lịch lab 2604-0805!F124/H124"
+      }
+    ]
+  },
+  {
+    "room_id": "C202",
+    "capacity": 60,
+    "observations": [
+      {
+        "listed_capacity": 60,
+        "single_room": false,
+        "source": "lab-coach-schedule.xlsx/Lịch lab 2604-0805!F40/H40"
+      }
+    ]
+  },
+  {
+    "room_id": "C203",
+    "capacity": 160,
+    "observations": [
+      {
+        "listed_capacity": 80,
+        "single_room": false,
+        "source": "lab-coach-schedule.xlsx/Lịch lab 2604-0805!F12/H12"
+      },
+      {
+        "listed_capacity": 110,
+        "single_room": false,
+        "source": "lab-coach-schedule.xlsx/Lịch lab 2604-0805!F28/H28"
+      },
+      {
+        "listed_capacity": 110,
+        "single_room": false,
+        "source": "lab-coach-schedule.xlsx/Lịch lab 2604-0805!F81/H81"
+      },
+      {
+        "listed_capacity": 160,
+        "single_room": false,
+        "source": "lab-coach-schedule.xlsx/Lịch lab 2604-0805!F133/H133"
+      },
+      {
+        "listed_capacity": 160,
+        "single_room": false,
+        "source": "lab-coach-schedule.xlsx/Lịch lab 2604-0805!F140/H140"
+      }
+    ]
+  },
+  {
+    "room_id": "C204",
+    "capacity": 160,
+    "observations": [
+      {
+        "listed_capacity": 60,
+        "single_room": false,
+        "source": "lab-coach-schedule.xlsx/Lịch lab 2604-0805!F76/H76"
+      },
+      {
+        "listed_capacity": 110,
+        "single_room": false,
+        "source": "lab-coach-schedule.xlsx/Lịch lab 2604-0805!F81/H81"
+      },
+      {
+        "listed_capacity": 160,
+        "single_room": false,
+        "source": "lab-coach-schedule.xlsx/Lịch lab 2604-0805!F114/H114"
+      },
+      {
+        "listed_capacity": 160,
+        "single_room": false,
+        "source": "lab-coach-schedule.xlsx/Lịch lab 2604-0805!F133/H133"
+      }
+    ]
+  },
+  {
+    "room_id": "C301",
+    "capacity": 160,
+    "observations": [
+      {
+        "listed_capacity": 110,
+        "single_room": false,
+        "source": "lab-coach-schedule.xlsx/Lịch lab 2604-0805!F6/H6"
+      },
+      {
+        "listed_capacity": 80,
+        "single_room": false,
+        "source": "lab-coach-schedule.xlsx/Lịch lab 2604-0805!F23/H23"
+      },
+      {
+        "listed_capacity": 160,
+        "single_room": false,
+        "source": "lab-coach-schedule.xlsx/Lịch lab 2604-0805!F133/H133"
+      }
+    ]
+  },
+  {
+    "room_id": "C302",
+    "capacity": 80,
+    "observations": [
+      {
+        "listed_capacity": 80,
+        "single_room": false,
+        "source": "lab-coach-schedule.xlsx/Lịch lab 2604-0805!F12/H12"
+      },
+      {
+        "listed_capacity": 60,
+        "single_room": false,
+        "source": "lab-coach-schedule.xlsx/Lịch lab 2604-0805!F76/H76"
+      }
+    ]
+  },
+  {
+    "room_id": "C303",
+    "capacity": 80,
+    "observations": [
+      {
+        "listed_capacity": 80,
+        "single_room": false,
+        "source": "lab-coach-schedule.xlsx/Lịch lab 2604-0805!F23/H23"
+      }
+    ]
+  },
+  {
+    "room_id": "C304",
+    "capacity": 160,
+    "observations": [
+      {
+        "listed_capacity": 80,
+        "single_room": false,
+        "source": "lab-coach-schedule.xlsx/Lịch lab 2604-0805!F65/H65"
+      },
+      {
+        "listed_capacity": 110,
+        "single_room": false,
+        "source": "lab-coach-schedule.xlsx/Lịch lab 2604-0805!F81/H81"
+      },
+      {
+        "listed_capacity": 160,
+        "single_room": false,
+        "source": "lab-coach-schedule.xlsx/Lịch lab 2604-0805!F114/H114"
+      }
+    ]
+  },
+  {
+    "room_id": "C305",
+    "capacity": 110,
+    "observations": [
+      {
+        "listed_capacity": 110,
+        "single_room": false,
+        "source": "lab-coach-schedule.xlsx/Lịch lab 2604-0805!F6/H6"
+      },
+      {
+        "listed_capacity": 80,
+        "single_room": false,
+        "source": "lab-coach-schedule.xlsx/Lịch lab 2604-0805!F65/H65"
+      }
+    ]
+  },
+  {
+    "room_id": "C401",
+    "capacity": 80,
+    "observations": [
+      {
+        "listed_capacity": 60,
+        "single_room": true,
+        "source": "lab-coach-schedule.xlsx/Lịch lab 2604-0805!F19/H19"
+      },
+      {
+        "listed_capacity": 80,
+        "single_room": false,
+        "source": "lab-coach-schedule.xlsx/Lịch lab 2604-0805!F95/H95"
+      },
+      {
+        "listed_capacity": 80,
+        "single_room": true,
+        "source": "lab-coach-schedule.xlsx/Lịch lab 2604-0805!F146/H146"
+      },
+      {
+        "listed_capacity": 80,
+        "single_room": true,
+        "source": "lab-coach-schedule.xlsx/Lịch lab 2604-0805!F157/H157"
+      }
+    ]
+  },
+  {
+    "room_id": "C402",
+    "capacity": 110,
+    "observations": [
+      {
+        "listed_capacity": 110,
+        "single_room": false,
+        "source": "lab-coach-schedule.xlsx/Lịch lab 2604-0805!F28/H28"
+      }
+    ]
+  },
+  {
+    "room_id": "E303",
+    "capacity": 160,
+    "observations": [
+      {
+        "listed_capacity": 110,
+        "single_room": false,
+        "source": "lab-coach-schedule.xlsx/Lịch lab 2604-0805!F28/H28"
+      },
+      {
+        "listed_capacity": 60,
+        "single_room": false,
+        "source": "lab-coach-schedule.xlsx/Lịch lab 2604-0805!F72/H72"
+      },
+      {
+        "listed_capacity": 160,
+        "single_room": false,
+        "source": "lab-coach-schedule.xlsx/Lịch lab 2604-0805!F114/H114"
+      },
+      {
+        "listed_capacity": 160,
+        "single_room": false,
+        "source": "lab-coach-schedule.xlsx/Lịch lab 2604-0805!F140/H140"
+      }
+    ]
+  },
+  {
+    "room_id": "E305",
+    "capacity": 160,
+    "observations": [
+      {
+        "listed_capacity": 110,
+        "single_room": false,
+        "source": "lab-coach-schedule.xlsx/Lịch lab 2604-0805!F81/H81"
+      },
+      {
+        "listed_capacity": 160,
+        "single_room": false,
+        "source": "lab-coach-schedule.xlsx/Lịch lab 2604-0805!F114/H114"
+      }
+    ]
+  },
+  {
+    "room_id": "E402",
+    "capacity": 160,
+    "observations": [
+      {
+        "listed_capacity": 80,
+        "single_room": false,
+        "source": "lab-coach-schedule.xlsx/Lịch lab 2604-0805!F65/H65"
+      },
+      {
+        "listed_capacity": 160,
+        "single_room": false,
+        "source": "lab-coach-schedule.xlsx/Lịch lab 2604-0805!F105/H105"
+      },
+      {
+        "listed_capacity": 160,
+        "single_room": false,
+        "source": "lab-coach-schedule.xlsx/Lịch lab 2604-0805!F114/H114"
+      }
+    ]
+  },
+  {
+    "room_id": "E403",
+    "capacity": 110,
+    "observations": [
+      {
+        "listed_capacity": 110,
+        "single_room": false,
+        "source": "lab-coach-schedule.xlsx/Lịch lab 2604-0805!F11/H11"
+      },
+      {
+        "listed_capacity": 60,
+        "single_room": false,
+        "source": "lab-coach-schedule.xlsx/Lịch lab 2604-0805!F40/H40"
+      },
+      {
+        "listed_capacity": 80,
+        "single_room": false,
+        "source": "lab-coach-schedule.xlsx/Lịch lab 2604-0805!F64/H64"
+      },
+      {
+        "listed_capacity": 60,
+        "single_room": false,
+        "source": "lab-coach-schedule.xlsx/Lịch lab 2604-0805!F124/H124"
+      }
+    ]
+  },
+  {
+    "room_id": "F307",
+    "capacity": 160,
+    "observations": [
+      {
+        "listed_capacity": 110,
+        "single_room": false,
+        "source": "lab-coach-schedule.xlsx/Lịch lab 2604-0805!F81/H81"
+      },
+      {
+        "listed_capacity": 160,
+        "single_room": false,
+        "source": "lab-coach-schedule.xlsx/Lịch lab 2604-0805!F133/H133"
+      }
+    ]
+  },
+  {
+    "room_id": "G104",
+    "capacity": 160,
+    "observations": [
+      {
+        "listed_capacity": 160,
+        "single_room": false,
+        "source": "lab-coach-schedule.xlsx/Lịch lab 2604-0805!F133/H133"
+      }
+    ]
+  },
+  {
+    "room_id": "H104",
+    "capacity": 160,
+    "observations": [
+      {
+        "listed_capacity": 110,
+        "single_room": false,
+        "source": "lab-coach-schedule.xlsx/Lịch lab 2604-0805!F6/H6"
+      },
+      {
+        "listed_capacity": 80,
+        "single_room": false,
+        "source": "lab-coach-schedule.xlsx/Lịch lab 2604-0805!F65/H65"
+      },
+      {
+        "listed_capacity": 160,
+        "single_room": false,
+        "source": "lab-coach-schedule.xlsx/Lịch lab 2604-0805!F105/H105"
+      }
+    ]
+  },
+  {
+    "room_id": "H201",
+    "capacity": 160,
+    "observations": [
+      {
+        "listed_capacity": 110,
+        "single_room": false,
+        "source": "lab-coach-schedule.xlsx/Lịch lab 2604-0805!F28/H28"
+      },
+      {
+        "listed_capacity": 80,
+        "single_room": false,
+        "source": "lab-coach-schedule.xlsx/Lịch lab 2604-0805!F65/H65"
+      },
+      {
+        "listed_capacity": 160,
+        "single_room": false,
+        "source": "lab-coach-schedule.xlsx/Lịch lab 2604-0805!F105/H105"
+      },
+      {
+        "listed_capacity": 160,
+        "single_room": false,
+        "source": "lab-coach-schedule.xlsx/Lịch lab 2604-0805!F140/H140"
+      }
+    ]
+  },
+  {
+    "room_id": "H202",
+    "capacity": 110,
+    "observations": [
+      {
+        "listed_capacity": 110,
+        "single_room": false,
+        "source": "lab-coach-schedule.xlsx/Lịch lab 2604-0805!F6/H6"
+      }
+    ]
+  },
+  {
+    "room_id": "H203",
+    "capacity": 80,
+    "observations": [
+      {
+        "listed_capacity": 80,
+        "single_room": false,
+        "source": "lab-coach-schedule.xlsx/Lịch lab 2604-0805!F64/H64"
+      }
+    ]
+  },
+  {
+    "room_id": "H204",
+    "capacity": 110,
+    "observations": [
+      {
+        "listed_capacity": 110,
+        "single_room": false,
+        "source": "lab-coach-schedule.xlsx/Lịch lab 2604-0805!F88/H88"
+      }
+    ]
+  },
+  {
+    "room_id": "H207",
+    "capacity": 110,
+    "observations": [
+      {
+        "listed_capacity": 110,
+        "single_room": false,
+        "source": "lab-coach-schedule.xlsx/Lịch lab 2604-0805!F88/H88"
+      }
+    ]
+  },
+  {
+    "room_id": "H208",
+    "capacity": 80,
+    "observations": [
+      {
+        "listed_capacity": 80,
+        "single_room": false,
+        "source": "lab-coach-schedule.xlsx/Lịch lab 2604-0805!F64/H64"
+      }
+    ]
+  },
+  {
+    "room_id": "H209",
+    "capacity": 110,
+    "observations": [
+      {
+        "listed_capacity": 110,
+        "single_room": false,
+        "source": "lab-coach-schedule.xlsx/Lịch lab 2604-0805!F166/H166"
+      }
+    ]
+  },
+  {
+    "room_id": "H210",
+    "capacity": 110,
+    "observations": [
+      {
+        "listed_capacity": 80,
+        "single_room": false,
+        "source": "lab-coach-schedule.xlsx/Lịch lab 2604-0805!F55/H55"
+      },
+      {
+        "listed_capacity": 80,
+        "single_room": false,
+        "source": "lab-coach-schedule.xlsx/Lịch lab 2604-0805!F64/H64"
+      },
+      {
+        "listed_capacity": 60,
+        "single_room": false,
+        "source": "lab-coach-schedule.xlsx/Lịch lab 2604-0805!F124/H124"
+      },
+      {
+        "listed_capacity": 110,
+        "single_room": false,
+        "source": "lab-coach-schedule.xlsx/Lịch lab 2604-0805!F166/H166"
+      }
+    ]
+  }
+]

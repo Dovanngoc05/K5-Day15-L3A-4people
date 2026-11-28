@@ -1,4 +1,4 @@
-"""Khung chạy bản chạy thử tối thiểu (dòng lệnh): gõ đầu vào → answer() trong agent.py → in kết quả.
+"""Chạy web local qua python run.py; legacy_cli giữ giao diện dòng lệnh cũ.
 
 Chạy bằng python run.py cli.
 """
@@ -25,6 +25,19 @@ def _where(e):
     return os.path.relpath(p, base).replace(os.sep, "/") if p.startswith(base) else path
 
 def main() -> int:
+    # Keep the framework entry `python run.py` while serving the local web app.
+    project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    sys.path.insert(0, project_root)
+    try:
+        from app import main as web_main
+        web_main()
+    except ImportError as exc:
+        print("Thiếu thư viện web: %s. Chạy python -m pip install -r requirements.txt" % exc)
+        return 1
+    return 0
+
+
+def legacy_cli() -> int:
     try:
         import tracing
         from agent import answer

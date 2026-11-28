@@ -1,1 +1,24 @@
-{% extends 'base.html' %}{% block content %}<div class="eyebrow">ADMIN / XÁC NHẬN NHẬP</div><h1>Kiểm tra trước khi sử dụng</h1><p class="lede">File đã qua trình quét virus và kiểm tra cấu trúc. Dữ liệu vẫn cần kiểm tra nghiệp vụ.</p><section class="panel"><h2>Các bảng sẽ được cập nhật</h2><div class="chips">{% for name,rows in tables.items() if not name.startswith('_') %}<span class="tag">{{ name }} · {{ rows|length }} dòng</span>{% endfor %}</div><p class="muted">Workbook chuẩn thay thế toàn bộ bảng cùng tên. Đối với nguồn gốc BTC, danh tính được ghép bằng mã; không tự điền giờ rảnh/chuyên môn.</p><form method="post" action="{{ url_for('confirm_upload') }}"><input type="hidden" name="csrf" value="{{ csrf }}"><button class="button primary">Xác nhận nhập dữ liệu</button> <a class="button secondary" href="{{ url_for('admin') }}">Quay lại</a></form></section><section class="panel"><h2>Kết quả kiểm tra virus</h2>{% for row in tables._Manifest %}<p><b>{{ row.file }}</b> · {{ row.scanner }} · Hoàn tất quét<br><code class="small">SHA-256: {{ row.sha256 }}</code></p>{% endfor %}</section><section class="panel"><h2>Ghi chú nguồn và chuyển đổi</h2>{% for row in tables._Notes %}<p>{{ row.message }}</p>{% endfor %}</section><section class="panel"><h2>Dữ liệu cần bổ sung sau khi nhập</h2>{% for row in problems %}<p><span class="tag warning">{{ row.code }}</span> {{ row.message }}</p>{% else %}<p class="success-text">Đủ dữ liệu cấu trúc để chạy solver.</p>{% endfor %}</section>{% endblock %}
+{% extends 'base.html' %}{% block content %}<div class="eyebrow">ADMIN / XÁC NHẬN NHẬP</div><h1>Kiểm tra trước khi sử dụng</h1><p class="lede">File đã qua trình quét virus và kiểm tra cấu trúc. Dữ liệu vẫn cần kiểm tra nghiệp vụ.</p><section class="panel"><h2>Các bảng sẽ được cập nhật</h2><div class="chips">{% for name,rows in tables.items() if not name.startswith('_') %}<span class="tag">{{ name }} · {{ rows|length }} dòng</span>{% endfor %}</div><p class="muted">Workbook chuẩn thay thế toàn bộ bảng cùng tên. Đối với nguồn gốc BTC, danh tính được ghép bằng mã. Hồ sơ JSON chỉ bổ sung các ô còn trống.</p><form method="post" action="{{ url_for('confirm_upload') }}"><input type="hidden" name="csrf" value="{{ csrf }}"><button class="button primary">Xác nhận nhập dữ liệu</button> <a class="button secondary" href="{{ url_for('admin') }}">Quay lại</a></form></section><section class="panel"><h2>Kết quả kiểm tra virus</h2>{% for row in tables._Manifest %}<p><b>{{ row.file }}</b> · {{ row.scanner }} · Hoàn tất quét<br><code class="small">SHA-256: {{ row.sha256 }}</code></p>{% endfor %}</section><section class="panel"><h2>Ghi chú nguồn và chuyển đổi</h2>{% for row in tables._Notes %}<p>{{ row.message }}</p>{% endfor %}</section>{% if tables._Profiles %}
+<section class="panel">
+  <h2>Hồ sơ bổ sung từ lịch JSON</h2>
+  <div class="table-scroll"><table>
+    <thead><tr><th>Mã người</th><th>Môn</th><th>Kỹ năng</th><th>Phút/ngày</th><th>Phút/tuần</th></tr></thead>
+    <tbody>{% for profile in tables._Profiles %}
+      <tr><td>{{ profile.person_id }}</td><td>{{ (profile.subjects or '—')|replace('|', ' · ') }}</td><td>{{ (profile.skills or '—')|replace('|', ' · ') }}</td><td>{{ profile.max_minutes_day or '—' }}</td><td>{{ profile.max_minutes_week or '—' }}</td></tr>
+    {% endfor %}</tbody>
+  </table></div>
+</section>
+{% endif %}
+{% if tables._LabRoomEvidence %}
+<section class="panel">
+  <h2>Phòng và sức chứa ghi trên lịch lab</h2>
+  <p class="muted">Các dòng nhiều phòng, chờ xác nhận hoặc có số liệu mâu thuẫn được lưu cùng nguồn để đối chiếu. Giá trị dùng cho bộ xếp lịch cần xác định được cho từng phòng.</p>
+  <div class="table-scroll"><table>
+    <thead><tr><th>Phòng ghi trên lịch</th><th>Sức chứa ghi trên lịch</th><th>Ô nguồn</th></tr></thead>
+    <tbody>{% for room in tables._LabRoomEvidence %}
+      <tr><td>{{ room.room_label or '—' }}</td><td>{{ room.listed_capacity }}</td><td>{{ room.file }} · {{ room.cells }}</td></tr>
+    {% endfor %}</tbody>
+  </table></div>
+</section>
+{% endif %}
+<section class="panel"><h2>Dữ liệu cần bổ sung sau khi nhập</h2>{% for row in problems %}<p><span class="tag warning">{{ row.code }}</span> {{ row.message }}</p>{% else %}<p class="success-text">Đủ dữ liệu cấu trúc để chạy solver.</p>{% endfor %}</section>{% endblock %}

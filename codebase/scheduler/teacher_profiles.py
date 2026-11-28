@@ -8,6 +8,35 @@ from .solver import integer, slot_time
 
 REPORT_NAME = "schedule-extraction.json"
 LIMITS = {"max_minutes_day": 1440, "max_minutes_week": 10080}
+STAFF_ROLES = {"teacher", "assistant", "key_coach"}
+
+
+def fill_report_profiles(path, data):
+    """Fill blank fields on matching staff in an import preview."""
+    try:
+        with path.open(encoding="utf-8-sig") as source:
+            report = json.load(source)
+    except FileNotFoundError:
+        return []
+    profiles = {p["person_id"]: p for p in report["tables"]["People"]
+                if p["role"] in STAFF_ROLES}
+    updates = []
+    for person in data["People"]:
+        pid = person["person_id"]
+        profile = profiles.get(pid)
+        role = person["role"]
+        if (not profile or role not in STAFF_ROLES
+                or (role == "teacher") != (profile["role"] == "teacher")):
+            continue
+        changes = {}
+        for field in ("subjects", "skills", *LIMITS):
+            value = text(profile.get(field))
+            if value and not text(person.get(field)):
+                changes[field] = integer(value, field, 1, LIMITS[field]) if field in LIMITS else value
+        if changes:
+            person.update(changes)
+            updates.append(dict(person_id=pid, role=role, **changes))
+    return updates
 
 
 def teacher_profile_updates(path, data):

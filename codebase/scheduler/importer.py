@@ -1,5 +1,6 @@
 """Canonical workbooks plus a conservative adapter for the three project sources."""
 from io import BytesIO
+from collections import defaultdict
 from datetime import datetime
 import re
 
@@ -8,7 +9,18 @@ from openpyxl import load_workbook
 from .excel import SCHEMA, OPTIONAL_COLUMNS, empty_data, read_tables, text
 
 
-def import_workbook(payload):
+LAB_ROOMS_SHEET = "Lịch lab 2604-0805"
+
+
+def lab_room_rows(sheet):
+    """Read the room labels and the listed capacity for each lab row."""
+    for number, row in enumerate(sheet.iter_rows(min_col=6, max_col=8, values_only=True), start=1):
+        room, _, capacity = row
+        if isinstance(capacity, int) and not isinstance(capacity, bool) and capacity > 0:
+            yield dict(cells=f"F{number}/H{number}", room_label=text(room), listed_capacity=capacity)
+
+
+def import_workbook(payload, *, room_evidence=None):
     book = load_workbook(BytesIO(payload), data_only=False, keep_links=False)
     names = set(book.sheetnames)
     book.close()
@@ -81,7 +93,7 @@ def import_workbook(payload):
                         baseline_room=room_ids[0] if len(room_ids)==1 else "")
                     notes.append(f"{sid}: nguồn Khoá 9 (GĐ1)/{cell.coordinate}; giữ khoá để admin xác nhận. Phòng nhiều/chưa chốt/online và phân công nhiều người cần bổ sung rõ.")
             tables.update(Sessions=list(sessions.values()),Slots=list(slots.values()),People=list(people.values()),Rooms=list(rooms.values()))
-        if "Lịch lab 2604-0805" in names:
+        if LAB_ROOMS_SHEET in names:
             found={}
             for sheet_name in ["Lịch lab 1504-2404","Lịch lab 2604-0805"]:
                 if sheet_name not in names:
@@ -93,6 +105,26 @@ def import_workbook(payload):
                             found[label]=dict(person_id=label,name=label,role="assistant",subjects="",skills="",max_minutes_day="",max_minutes_week="")
             tables["People"]=list(found.values())
             notes.append("Đã lấy nhãn coach. Vai key coach, kỹ năng, giờ rảnh và phân công cần admin xác nhận; không coi form đăng ký/đổi ca là phân công đã duyệt.")
+            evidence=list(lab_room_rows(book[LAB_ROOMS_SHEET]))
+            rooms={row["room_id"]:row for row in tables.get("Rooms", [])}
+            single_room_capacities=defaultdict(set)
+            for row in evidence:
+                label=row["room_label"]
+                for rid in re.findall(r"\b[A-Z]\d{3}\b",label):
+                    rooms.setdefault(rid,dict(room_id=rid,capacity=""))
+                if re.fullmatch(r"[A-Z]\d{3}",label):
+                    single_room_capacities[label].add(row["listed_capacity"])
+            for rid, capacities in sorted(single_room_capacities.items()):
+                if len(capacities)==1 and not text(rooms[rid]["capacity"]):
+                    rooms[rid]["capacity"]=next(iter(capacities))
+                elif len(capacities)>1:
+                    notes.append(f"{LAB_ROOMS_SHEET}: {rid} có nhiều mức sức chứa ({', '.join(map(str,sorted(capacities)))}); cần xác nhận.")
+            if rooms:
+                tables["Rooms"]=list(rooms.values())
+            if evidence:
+                notes.append(f"{LAB_ROOMS_SHEET}: đọc {len(evidence)} dòng sức chứa. Chỉ bổ sung sức chứa từng phòng khi nguồn ghi đúng một phòng và giá trị thống nhất.")
+                if room_evidence is not None:
+                    room_evidence.extend(evidence)
         if not tables:
             raise ValueError("Không nhận diện được cấu trúc. Dùng workbook mẫu hoặc các sheet nguồn Learners, Khoá 9 (GĐ1), Lịch lab 2604-0805.")
         return tables,notes
@@ -113,5 +145,7 @@ def combine_import(current, imports):
                 for row in rows:
                     if row[key] not in index:
                         index[row[key]]=row
+                    elif table=="Rooms" and not text(index[row[key]].get("capacity")) and text(row.get("capacity")):
+                        index[row[key]]={**index[row[key]],"capacity":row["capacity"]}
                 result[table]=list(index.values())
     return result

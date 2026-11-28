@@ -12,8 +12,8 @@ def main():
     parser.add_argument("--port",type=int,default=8000)
     parser.add_argument("--data-dir",type=Path,help="Kho Excel local riêng, ví dụ runtime/demo-ready")
     args=parser.parse_args()
-    from codebase.scheduler.web import create_app, add_account
-    from codebase.scheduler.excel import SCHEMA, atomic_write
+    from scheduler.web import create_app, add_account
+    from scheduler.excel import SCHEMA, atomic_write
     app=create_app(args.data_dir)
     store=app.config["STORE"]
     if args.command=="init-admin":
@@ -29,7 +29,7 @@ def main():
         print("Da tao tai khoan admin. Chay: python run.py")
         return
     if args.command=="demo-workbooks":
-        from codebase.scheduler.demo import demo_data
+        from scheduler.demo import demo_data
         data=demo_data()
         folder=store.root/"demo-inputs"
         for filename,tables in [("people.xlsx",["People","Enrollments","Availability"]),

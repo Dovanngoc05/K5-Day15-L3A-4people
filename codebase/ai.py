@@ -221,6 +221,56 @@ def _llama_completion(system, user, port, model, timeout, schema, stats=None):
     }
 
 
+def _openrouter_completion(system, user, timeout=60):
+    """Gọi OpenRouter Chat Completions; API key chỉ được gửi trong header Authorization."""
+    if not API_KEY:
+        raise ValueError("Thiếu API_KEY trong .env.")
+    if not MODEL_NAME:
+        raise ValueError("Thiếu MODEL_NAME trong .env.")
+
+    messages = ([{"role": "system", "content": system}] if system else [])
+    messages.append({"role": "user", "content": user})
+    body = {
+        "model": MODEL_NAME,
+        "messages": messages,
+        "temperature": 0,
+        "max_tokens": 1024,
+    }
+    request = Request(
+        "https://openrouter.ai/api/v1/chat/completions",
+        json.dumps(body, ensure_ascii=False).encode("utf-8"),
+        {"Content-Type": "application/json", "Authorization": "Bearer " + API_KEY},
+    )
+    # Chặn redirect để không chuyển tiếp header chứa API key sang host khác.
+    opener = build_opener(_LocalOnly())
+    try:
+        with opener.open(request, timeout=timeout) as response:
+            data = json.loads(response.read().decode("utf-8"))
+    except Exception as exc:
+        from urllib.error import HTTPError
+        if isinstance(exc, HTTPError):
+            detail = exc.read().decode("utf-8", "replace")[:500]
+            raise RuntimeError("OpenRouter HTTP %d: %s" % (exc.code, detail)) from exc
+        raise
+
+    try:
+        text = data["choices"][0]["message"]["content"]
+        usage = data["usage"]
+        tokens_in = int(usage["prompt_tokens"])
+        tokens_out = int(usage["completion_tokens"])
+    except (KeyError, IndexError, TypeError, ValueError) as exc:
+        # Thiếu usage thì không ghi nhận lượt chạy như một lần gọi AI đã đo token.
+        raise RuntimeError("OpenRouter không trả đủ nội dung hoặc usage token.") from exc
+    if not isinstance(text, str):
+        raise RuntimeError("OpenRouter không trả nội dung văn bản.")
+    return {
+        "text": text,
+        "model": MODEL_NAME,
+        "tokens_in": tokens_in,
+        "tokens_out": tokens_out,
+    }
+
+
 
 @model_call
 def call_model(system: str, user: str, *, llama_port=None, model=None, timeout=600, schema=None, stats=None) -> dict:
@@ -232,6 +282,8 @@ def call_model(system: str, user: str, *, llama_port=None, model=None, timeout=6
     if MODEL_PROVIDER == "fake":
         last = (user.strip().splitlines() or [""])[-1]
         return {"text": "[câu trả lời giả — chưa nối model] " + last[:60], "model": "fake", "tokens_in": 0, "tokens_out": 0}
+    if MODEL_PROVIDER == "openrouter":
+        return _openrouter_completion(system, user)
 
     # NHÓM VIẾT: gọi model thật ở đây (theo MODEL_PROVIDER, MODEL_NAME, API_KEY) rồi trả đúng 4 khoá.
     # Ví dụ chép được cho từng nhà cung cấp: docs/connect-model.md mục 2.

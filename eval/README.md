@@ -88,17 +88,17 @@ Cột `pass` trong `eval/run-N.csv` vẫn được chấm theo toàn bộ `pass_
 
 `python run.py eval` → `eval/run-N.csv` + `traces/run-N.jsonl` · điền cột `pass` · `python run.py score eval/run-N.csv`
 
-Kiểm tra cấu trúc bằng `python run.py check`. Chưa chạy đánh giá model cho bộ 25 câu này; `codebase/agent.py` hiện còn workflow mẫu và cần nối công cụ đọc Excel trước khi đánh giá khả năng tra lịch.
+Kiểm tra cấu trúc bằng `python run.py check`. Hai lượt dùng `openai/gpt-4o-mini` và cùng bộ 25 câu: run-1 đạt 1/25 (4%); sau khi nối `agent.py` với reader workbook local, run-2 đạt 11/25 (44%), không lỗi kỹ thuật. Run-2 còn trượt nhiều câu nguồn/fixture; sửa lọc sheet B12, chuẩn hoá guardrail B23 và thêm chỉ dẫn xử lý buổi Online sau lượt chạy nên các thay đổi đó chưa được đo. Web CP-SAT vẫn chưa nối với luồng agent benchmark.
 
 ## 5. Đã chạy gì
 
 | Lượt | Run ID | Model | Cấu hình (prompt / công cụ / thay đổi) | Đạt / tổng | % | Đạt chuẩn? |
 |---|---|---|---|---|---|---|
-| 1 | | | | __/__ | | |
-| 2 | | | | __/__ | | |
+| 1 | `run-1@20261128-105745` | `openai/gpt-4o-mini` | Workflow mẫu `agent.py`; `search_example` trả `VD-1`; 25 câu, không lỗi kỹ thuật | 1/25 | 4% | chưa đạt |
+| 2 | `run-2@20261128-113152` | `openai/gpt-4o-mini` | `search_schedule_sources` đọc workbook local theo ngày/lớp/buổi; nguồn và guardrail; 25 câu, không lỗi kỹ thuật | 11/25 | 44% | chưa đạt |
 
 Lượt chạy lại vì lỗi kỹ thuật, lượt sau CP4: ghi thêm dòng, không sửa dòng cũ.
 
 ## 6. Lỗi chính
 
-Tóm 2–3 dòng từ `eval/report.md`: nhóm lỗi lớn nhất · đã sửa gì · còn lại gì.
+Run-2 cải thiện kết quả lên 11/25 (44%), nhưng chưa đạt chuẩn. Còn thiếu/lẫn nguồn ở nhiều câu, fixture B17/B18/B20 và hướng thay thế ở B19/B23; lỗi lọc sheet B12 được sửa sau run-2, chưa đo lại. Chưa ghi nhận chấm độc lập lần hai hoặc xác nhận đủ 5 metric.

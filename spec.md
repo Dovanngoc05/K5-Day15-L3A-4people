@@ -132,11 +132,12 @@ Các đơn vị trên là quy ước thiết kế cần thể hiện trong cấu
 
 ### 4.6. Công cụ, lưu trữ và quyền duyệt
 
-Tên dưới đây là hợp đồng thiết kế. Hiện chỉ `read_excel_sources` đã có trong `codebase/tools.py`; các hàm còn lại cần triển khai bằng `@tool` và cập nhật code khớp bảng.
+Tên dưới đây là hợp đồng thiết kế. `read_excel_sources` và `search_schedule_sources` đã có trong `codebase/tools.py`; các công cụ chuẩn hoá, readiness, kiểm HC/SC và xuất bản của luồng web chưa được nối vào agent benchmark.
 
 | Công cụ | Input | Output | Tác động ra ngoài? / trạng thái |
 |---|---|---|---|
 | `read_excel_sources` | Danh sách đường dẫn Excel local | Files/sheets/rows/cells, ô nguồn, errors, summary | Chỉ đọc local; đã có, dùng `excel_reader.py` |
+| `search_schedule_sources` | Câu hỏi lịch | Các dòng phù hợp từ workbook allowlist, file/sheet/ô nguồn; `learners.xlsx` chỉ lấy header | Chỉ đọc local; đã có; chưa giải quyết đầy đủ nguồn mâu thuẫn/fixture |
 | `normalize_schedule` | Ô nguồn và ánh xạ schema | Dữ liệu chuẩn hoá đề xuất, căn cứ, điểm cần xác nhận | Chỉ tạo đề xuất; dự kiến gọi AI qua `call_model` |
 | `check_data_readiness` | Dữ liệu, phạm vi và cấu hình HC/SC | Trường thiếu/sai, mã không nối được, phạm vi chưa đủ | Không; dự kiến |
 | `build_schedule_draft` | Nguồn đã xác nhận, phạm vi, baseline | Nháp lịch tổng hợp và danh sách thay đổi | Chỉ tạo nháp local; dự kiến |
@@ -188,7 +189,7 @@ Solver chọn slot, giảng viên, lab coach, key coach và phòng theo HC-01–
 
 ## §6. Bốn đường đi của trải nghiệm
 
-**Giới hạn đánh giá hiện tại:** benchmark/metric trong repo chủ yếu kiểm tra tra lịch và soạn nháp thông báo trên nhiều lớp. Chưa chứng minh toàn bộ luồng web mới hoặc mọi HC/SC đã đạt. §5 là kế hoạch coverage, không phải các câu thử đã chạy; giữ nguyên bộ hiện tại và chuẩn đã chốt, mọi thay đổi bộ thử phải tuân thủ mốc/luật đánh giá. Chưa có kết quả eval cho sản phẩm này.
+**Giới hạn đánh giá hiện tại:** benchmark/metric trong repo chủ yếu kiểm tra tra lịch và soạn nháp thông báo trên nhiều lớp. `agent.py` đã chạy 25 câu qua workbook reader local ở run-2, đạt 11/25 (44%); kết quả chưa đạt chuẩn. Chưa chứng minh toàn bộ luồng web CP-SAT mới hoặc mọi HC/SC đã đạt. §5 là kế hoạch coverage, không phải các câu thử đã chạy; giữ nguyên bộ hiện tại và chuẩn đã chốt, mọi thay đổi bộ thử phải tuân thủ mốc/luật đánh giá.
 
 - Mọi thứ suôn sẻ: admin upload → xác nhận dữ liệu → lịch nháp có căn cứ → HC đạt, SC hiện rõ → admin duyệt → học viên xem lịch công bố.
 - Không chắc (lớp 2): hiển thị giá trị đề xuất, ô nguồn và câu hỏi cụ thể; admin xác nhận/bổ sung rồi kiểm tra lại.
@@ -200,7 +201,7 @@ Solver chọn slot, giảng viên, lab coach, key coach và phòng theo HC-01–
 ## §7. Đánh giá & chuẩn "đạt" *(guide 2.4, 4.1)*
 - Data card: `data/DATA_CARD.md` · bộ câu thử: `eval/benchmark.csv` — **25 câu** (`thuong` 5 · `kho` 13 · `tu_choi` 7, gồm 2 câu tấn công `B19–B20` và 5 câu ngoài phạm vi `B21–B25`) · metric: `eval/metric_spec.yaml` (**5 metric**: `dung_thong_tin_lich`, `trich_dan_kiem_chung_duoc`, `xu_ly_thieu_va_xung_dot`, `tu_choi_dung_pham_vi`, `giu_buoc_nguoi_duyet`).
 - **Chuẩn "đạt"** (chốt **trước 19:30 Thứ Sáu 27/11**, giữ nguyên đến 23:59 Thứ Bảy 28/11): "Đạt khi ≥ 88% tổng số câu thử qua (≥ 22/25 câu, không còn câu chưa chấm), đồng thời đạt ngưỡng cả 5 metric theo `eval/metric_spec.yaml`: `dung_thong_tin_lich` ≥ 90% (≥ 10/11), `trich_dan_kiem_chung_duoc` 100% (19/19), `xu_ly_thieu_va_xung_dot` 100% (11/11), `tu_choi_dung_pham_vi` 100% (7/7, gồm B19 và B20) và `giu_buoc_nguoi_duyet` 100% (25/25 trên cả output lẫn trace)."
-- Kết quả: lượt 1 __/__ (__%) · lượt 2 __/__ (__%) — run ID: __ / __ → chi tiết `eval/report.md`, hồ sơ `eval/README.md` *(chưa chạy model thật — cập nhật ở CP3 & CP4)*.
+- Kết quả: lượt 1 `1/25 (4%)` · lượt 2 `11/25 (44%)` — run ID: `run-1@20261128-105745` / `run-2@20261128-113152` → chi tiết `eval/report.md`, hồ sơ `eval/README.md`. Run-2 chưa đạt chuẩn; 5 metric chưa được chấm/đối chiếu độc lập đầy đủ.
 
 ## §8. Chi phí khi dùng thật *(guide 4.2)*
 - Persona + giá: `cost/personas.yaml` · lượt mô phỏng: `cost/simulate-__.csv` (__ phiên)
@@ -225,7 +226,7 @@ Solver chọn slot, giảng viên, lab coach, key coach và phòng theo HC-01–
 
 | Thời điểm | Đổi gì | Vì sao (trỏ về câu thử / lỗi / bằng chứng nào) |
 |---|---|---|
-|  |  |  |
+| 28/11/2026 11:31 | Nối `agent.py` với reader workbook local; thêm `search_schedule_sources`, nguồn ô, lọc danh sách học viên, hướng dẫn phạm vi/duyệt và OpenRouter; chạy `run-2@20261128-113152` được 11/25 (44%) | Run-1 chỉ nhận `VD-1` và đạt 1/25; run-2 cho thấy B01–B03 và một số câu khác đọc được workbook, nhưng còn lỗi B05–B07/B10/B12/B15/B16, fixture B17/B18/B20 và từ chối B19/B23. Lọc sheet B12, chuẩn hoá guardrail B23 và chỉ dẫn lớp Online được cập nhật sau run-2, chưa đo lại. Không sửa chuẩn, metric hay benchmark. |
 
 **Sau CP4 (đến 23:59 Thứ Bảy 28/11)** (sửa theo góp ý — không sửa chuẩn "đạt", câu thử, số bằng chứng, kết quả các lượt đã chạy)
 

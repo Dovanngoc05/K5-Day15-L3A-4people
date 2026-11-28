@@ -1,4 +1,4 @@
-# AI SPEC — Tổng hợp và kiểm tra lịch đào tạo · Nhóm 4people · Phòng H209s · Zone 3
+﻿# AI SPEC — Tổng hợp và kiểm tra lịch đào tạo · Nhóm 4people · Phòng H209s · Zone 3
 
 > Mốc nộp: §7 chốt chuẩn "đạt" tại **CP2 19:30 Thứ Sáu 27/11** · §0–§7 nộp **CP3 10:00 Thứ Bảy 28/11** · đủ §0–§10 **CP4 14:30 Thứ Bảy 28/11** · §10 changelog ghi tiếp đến **23:59 Thứ Bảy 28/11**.
 > Đầu mỗi mục ghi bước guide (`02-guide.md` trong repo đề) chỉ cách điền. Mỗi mục ngắn, có số và nguồn; chi tiết để ở file được trỏ tới. Xoá dòng hướng dẫn trong ngoặc vuông khi điền xong.
@@ -7,30 +7,30 @@ Track: [x] A · [ ] B · [ ] C · [ ] D · [ ] E — A5, vận hành đào tạo
 Data chạy thử đã lấy: `teaching-schedule.xlsx`, `lab-coach-schedule.xlsx` của BTC trong `data-btc/training-ops/` (local, Git bỏ qua); `learners.xlsx` giả lập do nhóm cung cấp trong `data/` và bản tải local. Hai bộ lịch mô phỏng Khoá 9 tháng 4–5/2027. Các bộ này không phải bằng chứng pain; ngày tạo tài khoản không xác định học viên thuộc khoá/lớp nào.
 
 ## §0. Hiện tại việc này diễn ra thế nào *(guide 1.1)*
-- Luồng hiện tại của việc này, trong khoá hoặc trên app thật (3–5 bước; ảnh chụp từ tài khoản của mình, đã che thông tin):
-- Công cụ / AI đang được dùng cho việc này (nếu có) + nguồn. Không kiểm được thì ghi "chưa kiểm":
+- Bằng chứng khảo sát hiện có về cách làm: 3 học viên tra lịch/phòng qua email hoặc danh sách nhóm; 1 Lab Coach dùng bảng phân công Google Sheets/Excel. Cả 4 báo lần tra gần nhất dưới 5 phút. Chưa có quan sát trực tiếp quy trình của Key Coach / Day Lead.
+- Prototype dùng openai/gpt-4o-mini qua OpenRouter trong codebase/agent.py; web CP-SAT chưa nối với luồng agent benchmark.
 
 ## §1. Người dùng & bằng chứng *(guide 1.1, 1.2)*
 - Người dùng chính (một vai cụ thể): admin phụ trách lịch đào tạo (key coach / Day Lead); học viên là vai xem lịch đã được duyệt.
-- Việc họ cố làm xong (`động từ + đối tượng + bối cảnh`, không có chữ AI): tổng hợp các bảng lịch, phòng và phân công thành một phiên bản lịch thống nhất, kiểm tra trước khi công bố để học viên tra cứu đúng buổi học.
-- Hôm nay họ giải bằng gì, hỏng ở đâu, vì sao chưa bỏ:
+- Việc họ cố làm xong: tổng hợp các bảng lịch, phòng và phân công thành một phiên bản lịch thống nhất, kiểm tra trước khi công bố để học viên tra cứu đúng buổi học.
+- Cách hiện có: R1–R3 tra qua Outlook/email hoặc danh sách nhóm; R4 Lab Coach dùng bảng phân công Google Sheets/Excel. Chưa biết cách Key Coach/Day Lead xử lý do chưa có người đúng vai trả lời.
 - Pain (KHÔNG chữ AI): giả thuyết chưa kiểm chứng — key coach tổng hợp nhiều bảng khi phòng chốt sát giờ, mất thời gian đối chiếu và có nguy cơ báo sai phòng.
-- Bằng chứng — số chính + kết luận (chi tiết: `evidence/summary.md`): chưa thu thập; chưa có số đo hoặc kết luận pain. Dự kiến phỏng vấn ít nhất 3 người ngoài nhóm có trực tiếp tham gia vận hành lab; dữ liệu training-ops giả lập không phải bằng chứng pain.
+- Bằng chứng (chi tiết evidence/summary.md): khảo sát n=4 gồm 3 học viên, 1 Lab Coach, 0 Key Coach/Day Lead. Cả 3 học viên chọn chưa gặp tình huống được hỏi; R4 nêu phòng “chờ xác nhận”/“dự kiến” sát giờ và phải kiểm tra, hỏi lại. Mẫu dưới ngưỡng, không đủ kết luận pain đại diện; workbook training-ops giả lập không phải bằng chứng pain.
 
 ## §2. Impact & quyết định chọn *(guide 1.3)*
 
 | Hướng | Bao nhiêu người gặp | Bao nhiêu lần / tháng | Mỗi lần tốn gì | Impact / tháng | Làm kịp không | Chọn? |
 |---|---|---|---|---|---|---|
-|  |  |  |  |  |  |  |
-|  |  |  |  |  |  |  |
-|  |  |  |  |  |  |  |
+| A5 · tổng hợp và kiểm tra lịch | Chưa xác minh; khảo sát đúng vai vận hành chưa đủ | R4 báo 1–2 lần/tháng tra lịch/phòng; không coi đây là tần suất pain | Lần tra gần nhất dưới 5 phút; thời gian do pain chưa đo | Chưa tính | Prototype local có; pain/impact chưa kiểm chứng | Chọn tạm để kiểm chứng |
+| A2 · tra hạn nộp lab | Chưa có số | Chưa có số | Chưa có số | Chưa tính | Chưa có bằng chứng so sánh | Nhóm đã loại; lý do chi tiết chưa ghi |
+| — | Chưa có dữ liệu xếp hạng thêm | — | — | — | — | Chưa quyết định |
 
-- **Impact / tháng** của hướng chọn = __ người × __ lần × __ phút = __ — nguồn từng thừa số: __ (không có nguồn thì ghi rõ *(tự ước tính)*)
-- Hướng ĐÃ LOẠI + vì sao (giữ lại, đừng xoá): A2, tra hạn nộp lab — nhóm quyết định chuyển sang A5; chưa có lý do chi tiết hoặc bằng chứng so sánh do nhóm cung cấp.
-- Số lần / tháng của từng kiểu người dùng (dùng cho persona ở §8):
+- **Impact / tháng:** chưa tính được. Khảo sát n=4, không có Key Coach/Day Lead; thời gian dưới 5 phút là thời gian tra lịch gần nhất, không phải thời gian mất do pain. Cần đo quy mô đúng vai, tần suất pain và thời gian xử lý trước khi nhân.
+- Hướng ĐÃ LOẠI + vì sao: A2, tra hạn nộp lab — nhóm chuyển sang A5; lý do chi tiết hoặc bằng chứng so sánh chưa được ghi nhận.
+- Số lần/tháng theo persona trong cost/personas.yaml là giả định mô phỏng, không phải số đo hành vi đã xác minh.
 
 ## §3. Giải pháp tương tự *(guide 2.1)*
-- [sản phẩm / tính năng gần giống]: một điều đáng học · một điều đáng né · mình khác gì
+- Chưa có so sánh sản phẩm/tính năng tương tự kèm nguồn trong tài liệu hiện có; chưa kết luận điểm khác biệt.
 
 ## §4. Thiết kế *(guide 2.2, 3.2)*
 
@@ -204,10 +204,11 @@ Solver chọn slot, giảng viên, lab coach, key coach và phòng theo HC-01–
 - Kết quả: lượt 1 `1/25 (4%)` · lượt 2 `11/25 (44%)` — run ID: `run-1@20261128-105745` / `run-2@20261128-113152` → chi tiết `eval/report.md`, hồ sơ `eval/README.md`. Run-2 chưa đạt chuẩn; 5 metric chưa được chấm/đối chiếu độc lập đầy đủ.
 
 ## §8. Chi phí khi dùng thật *(guide 4.2)*
-- Persona + giá: `cost/personas.yaml` · lượt mô phỏng: `cost/simulate-__.csv` (__ phiên)
-- Chi phí / task thành công: __ (model __) · __ (model __)
-- Chi phí / tháng ở quy mô thật: thấp __ · cơ sở __ · cao __ → chi tiết `cost/cost-estimate.md`
-- So với impact / người / tháng (§2): đáng làm không, vì sao:
+- Persona, tỷ trọng, tần suất và quy mô 300/700/1.000: giả định nhóm, chưa được xác minh; nguồn giá và ngày xem ở cost/personas.yaml.
+- Lượt mô phỏng: cost/simulate-1.csv · simulate-1@20261128-122744 · 50 phiên · seed 42 · 0 lỗi; trace traces/simulate-1.jsonl.
+- Tỉ lệ đạt dùng tính chi phí/task: 11/25 (44%), run-2@20261128-113152.
+- Đo token trên openai/gpt-4o-mini; theo giá OpenRouter $0.15/M input, $0.60/M output: 152.586 input + 24.803 output tokens trong CSV cho chi phí ước tính $0.00076/phiên, $0.00172/task thành công và $7.57/tháng ở kịch bản 700. Dự báo cùng lượng token theo Gemini 3.1 Flash Lite: $0.0034/task, $15.14/tháng; Gemini 4 Hydrogen: $0.0189/task, $83.27/tháng. Persona/quy mô vẫn là giả định; chi tiết và nguồn giá trong cost/cost-estimate.md.
+- Impact/người/tháng chưa đo; chưa thể kết luận economics đáng làm. Bảng đầy đủ và giới hạn: cost/cost-estimate.md.
 
 ## §9. Rủi ro & an toàn
 - Dữ liệu: demo dùng lịch BTC giả lập và danh sách học viên synthetic. Nguyên workbook BTC giữ local trong `data-btc/`; học viên không truy cập file gốc, danh sách người hoặc lịch nháp. Dùng mã thay tên khi gửi đoạn lịch cần thiết cho model; không gửi toàn bộ workbook/danh sách học viên hoặc bí mật đăng nhập. Cần triển khai và kiểm tra các kiểm soát này trước demo.
@@ -227,9 +228,12 @@ Solver chọn slot, giảng viên, lab coach, key coach và phòng theo HC-01–
 | Thời điểm | Đổi gì | Vì sao (trỏ về câu thử / lỗi / bằng chứng nào) |
 |---|---|---|
 | 28/11/2026 11:31 | Nối `agent.py` với reader workbook local; thêm `search_schedule_sources`, nguồn ô, lọc danh sách học viên, hướng dẫn phạm vi/duyệt và OpenRouter; chạy `run-2@20261128-113152` được 11/25 (44%) | Run-1 chỉ nhận `VD-1` và đạt 1/25; run-2 cho thấy B01–B03 và một số câu khác đọc được workbook, nhưng còn lỗi B05–B07/B10/B12/B15/B16, fixture B17/B18/B20 và từ chối B19/B23. Lọc sheet B12, chuẩn hoá guardrail B23 và chỉ dẫn lớp Online được cập nhật sau run-2, chưa đo lại. Không sửa chuẩn, metric hay benchmark. |
+| 28/11/2026 12:27 | Chạy mô phỏng thật 50 phiên, seed 42, openai/gpt-4o-mini; 0/50 lỗi; dùng run-2 11/25 (44%) để tính task thành công | Bổ sung token/session và chi phí theo hai bảng giá OpenRouter trong cost/simulate-1-summary.md; persona và quy mô vẫn là giả định, chưa xác minh. |
 
 **Sau CP4 (đến 23:59 Thứ Bảy 28/11)** (sửa theo góp ý — không sửa chuẩn "đạt", câu thử, số bằng chứng, kết quả các lượt đã chạy)
 
 | Thời điểm | Đổi gì | Vì sao |
 |---|---|---|
 |  |  |  |
+
+

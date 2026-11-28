@@ -1,4 +1,4 @@
-# 4people — Xếp lịch đào tạo bằng Excel và CP-SAT (Track A5)
+﻿# 4people — Xếp lịch đào tạo bằng Excel và CP-SAT (Track A5)
 
 ## Chạy web local
 
@@ -123,14 +123,14 @@ Nhóm dùng stack khác (Node, Streamlit, notebook…): sửa hàm `run_app()` t
 
 | Thành phần | Thật / Giả | Ghi chú |
 |---|---|---|
-| Lời gọi AI ở quyết định trung tâm | **Thật** (bắt buộc từ CP3) | Model: ____ |
+| Lời gọi AI ở workflow benchmark | **Thật** | openai/gpt-4o-mini qua OpenRouter trong codebase/agent.py; web CP-SAT chưa nối. |
 |  |  |  |
 
 ## Dùng AI vào việc gì
 
 2–3 dòng (bắt buộc): nhóm dùng công cụ AI nào để làm gì, người kiểm lại phần nào. Chi tiết: [docs/ai-usage.md](docs/ai-usage.md). Coding agent đọc [AGENTS.md](AGENTS.md).
 
-____
+Workflow benchmark dùng OpenRouter openai/gpt-4o-mini để tạo câu trả lời từ bằng chứng local. Nhóm chấm thủ công theo pass_criterion và giữ trace/token; không gửi danh sách học viên lên model. Web CP-SAT chưa nối với luồng benchmark AI.
 
 ## File mẫu — điền ở bước nào
 
@@ -162,7 +162,7 @@ ____
 | 4 | Bản chạy thử làm trọn lát cắt | `codebase/` · lệnh ở mục "Lệnh" |
 | 5 | Định nghĩa "tốt" + bộ câu thử | `data/DATA_CARD.md` · `eval/` |
 | 6 | Mô phỏng chi phí khi dùng thật | `cost/` |
-| 7 | Slide + demo + video dự phòng | slide trong repo (PDF, PPTX, HTML…) hoặc link slide ở form CP4 · link video: ____ |
+| 7 | Slide + demo + video dự phòng | PDF: demo-slides.pdf ở repo root · video dự phòng: chưa có link |
 | + | *Bonus:* người dùng thử | `validation/log.md` |
 
 ## Ứng dụng web xếp lịch
@@ -182,3 +182,6 @@ To run extraction from the command line with an existing llama-server:
 ```powershell
 python -m codebase.scheduler.extract_schedule --out runtime/schedule-extraction.json
 ```
+
+
+
